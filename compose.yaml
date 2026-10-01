@@ -1,0 +1,55 @@
+# ============================================================
+# compose.yaml
+# AWSクラウドセキュリティ診断ツール
+#
+# 起動方法:
+#   docker compose up -d
+#   docker compose logs -f
+#   http://localhost:8800/ にアクセス
+#
+# ポートマッピング:
+#   ホスト 8800 → コンテナ 8000 (uvicorn)
+#
+# Prowler について:
+#   diagnosis_runner.py が FastAPI コンテナ内から
+#   "docker run prowlercloud/prowler:stable ..." を subprocess で呼び出す。
+#   これを実現するため Docker socket をコンテナにマウントする（DooD方式）。
+#
+#   Prowler の -v マウントパスはホスト側パスでなければならないため、
+#   HOST_OUTPUT_DIR 環境変数でホスト側の output ディレクトリ絶対パスを渡す。
+#   diagnosis_runner.py はこの値を使って Prowler の -v 引数を組み立てる。
+#
+# AWS認証情報について:
+#   .env ファイルから読み込む（compose.yaml / Dockerfile には直接記述しない）
+# ============================================================
+
+services:
+  web:
+    build: .
+    ports:
+      - "8800:8000"
+
+    # .env ファイルから環境変数を読み込む
+    # AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY / BEDROCK_* 等が対象
+    env_file:
+      - .env
+
+    environment:
+      # Prowler の docker run -v に渡すホスト側 output ディレクトリの絶対パス。
+      # ${PWD} は compose 実行時のカレントディレクトリ（プロジェクトルート）に展開される。
+      HOST_OUTPUT_DIR: ${PWD}/output
+
+    volumes:
+      # フロントエンド: HTML / JS / CSS の変更を即時反映
+      - ./frontend:/app/frontend
+      # output ディレクトリ: 診断結果・Prowler出力を永続化
+      - ./output:/app/output
+
+      # uploads ディレクトリ: アップロードされたヒアリングシートを永続化
+      - ./uploads:/app/uploads
+
+      # Docker socket マウント（DooD: Docker-outside-of-Docker）
+      # FastAPI コンテナ内から "docker run prowlercloud/prowler" を実行するために必要
+      - /var/run/docker.sock:/var/run/docker.sock
+
+    restart: unless-stopped

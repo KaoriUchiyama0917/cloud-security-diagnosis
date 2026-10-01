@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>診断レポート | クラウドセキュリティ診断</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+<!-- ナビゲーション（印刷時は非表示） -->
+<nav class="nav no-print">
+  <span class="nav-brand">クラウドセキュリティ診断</span>
+  <ul class="nav-links">
+    <li><a href="/">診断開始</a></li>
+    <li><a href="/history">履歴</a></li>
+  </ul>
+  <a href="/api/template/download" class="btn-template-download" download>
+    📥 ヒアリングシートをダウンロード
+  </a>
+</nav>
+
+<main class="page">
+
+  <!-- ローディング -->
+  <div id="loadingState" class="loading-overlay">
+    <span class="spinner"></span> レポートを読み込んでいます...
+  </div>
+
+  <!-- エラー -->
+  <div id="errorState" class="hidden">
+    <div class="error-box">
+      <div class="error-box-title">エラー</div>
+      <p id="errorMsg" style="color:var(--color-fail); font-size:13px;"></p>
+    </div>
+  </div>
+
+  <!-- レポート本体 -->
+  <div id="reportBody" class="hidden">
+
+    <!-- 操作バー（印刷時は非表示） -->
+    <div class="report-toolbar no-print">
+      <a id="backToResult" href="#" style="font-size:13px; color:var(--color-text-muted);">← 診断結果に戻る</a>
+      <button class="btn btn-primary" onclick="window.print()">🖨️ PDFとして保存 / 印刷</button>
+    </div>
+
+    <!-- ============================================================
+         レポート本文（印刷対象）
+         ============================================================ -->
+    <div class="report-document" id="reportDocument">
+
+      <!-- 表紙ヘッダー -->
+      <div class="report-cover">
+        <div class="report-cover-label">AWSクラウドセキュリティ診断レポート</div>
+        <div class="report-cover-system" id="coverSystemName"></div>
+        <div class="report-cover-meta">
+          <span id="coverDatetime"></span>
+          <span id="coverAccountId"></span>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           セクション 1: 診断結果サマリー
+           ============================================================ -->
+      <section class="report-section">
+        <div class="report-section-number">1</div>
+        <div class="report-section-title">診断結果サマリー</div>
+        <p class="report-section-desc">
+          今回の診断で確認された項目の件数と、最も深刻なリスクレベルをまとめています。
+        </p>
+
+        <div class="report-summary-grid">
+          <div class="report-stat">
+            <div class="report-stat-value" id="statTotal">-</div>
+            <div class="report-stat-label">診断した項目数</div>
+          </div>
+          <div class="report-stat report-stat-pass">
+            <div class="report-stat-value" id="statPass">-</div>
+            <div class="report-stat-label">問題なし</div>
+          </div>
+          <div class="report-stat report-stat-fail">
+            <div class="report-stat-value" id="statFail">-</div>
+            <div class="report-stat-label">要対応（合計）</div>
+          </div>
+          <div class="report-stat" id="statRiskWrap">
+            <div class="report-stat-value" id="statMaxRisk">-</div>
+            <div class="report-stat-label">最大リスクレベル</div>
+          </div>
+        </div>
+
+        <!-- リスクレベル別件数 -->
+        <div class="report-risk-counts" id="riskCounts"></div>
+
+        <!-- リスクレベル説明 -->
+        <div class="report-risk-legend">
+          <div class="report-risk-item report-risk-high">
+            <span class="report-risk-dot"></span>
+            <strong>HIGH（高リスク）</strong>：早急な対応が必要な深刻な問題です。
+          </div>
+          <div class="report-risk-item report-risk-medium">
+            <span class="report-risk-dot"></span>
+            <strong>MEDIUM（中リスク）</strong>：計画的に対応することを推奨します。
+          </div>
+          <div class="report-risk-item report-risk-low">
+            <span class="report-risk-dot"></span>
+            <strong>LOW（低リスク）</strong>：状況を確認し、必要に応じて対応してください。
+          </div>
+          <div class="report-risk-item report-risk-none">
+            <span class="report-risk-dot"></span>
+            <strong>NONE（リスクなし）</strong>：現時点でリスクはありません。
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           セクション 2: 診断対象システム情報
+           ============================================================ -->
+      <section class="report-section">
+        <div class="report-section-number">2</div>
+        <div class="report-section-title">診断対象システム情報</div>
+        <p class="report-section-desc">
+          今回の診断を実施したシステムと環境の情報です。
+        </p>
+
+        <table class="report-info-table">
+          <tbody id="systemInfoTable"></tbody>
+        </table>
+      </section>
+
+      <!-- ============================================================
+           セクション 3: 検出された問題と対応方針
+           ============================================================ -->
+      <section class="report-section">
+        <div class="report-section-number">3</div>
+        <div class="report-section-title">検出された問題と対応方針</div>
+        <p class="report-section-desc">
+          診断で検出された問題点と、それぞれの対応方針をまとめています。<br>
+          リスクレベルが高いものから順に対応することを推奨します。
+        </p>
+
+        <!-- 問題なしの場合 -->
+        <div id="noFindingsMsg" class="report-no-findings hidden">
+          ✅ 今回の診断では、対応が必要な問題は検出されませんでした。
+        </div>
+
+        <!-- Finding カード一覧 -->
+        <div id="findingCards"></div>
+      </section>
+
+      <!-- ============================================================
+           セクション 4: ヒアリング回答内容
+           ============================================================ -->
+      <section class="report-section" id="hearingSection">
+        <div class="report-section-number">4</div>
+        <div class="report-section-title">参考：ヒアリング回答内容</div>
+        <p class="report-section-desc">
+          診断実施前にご回答いただいた内容です。診断の判断材料として使用しました。
+        </p>
+
+        <table class="report-info-table">
+          <tbody id="hearingTable"></tbody>
+        </table>
+      </section>
+
+      <!-- フッター -->
+      <div class="report-footer">
+        <div>本レポートはクラウドセキュリティ診断ツールにより生成されました。</div>
+        <div id="footerDatetime"></div>
+      </div>
+
+    </div><!-- /report-document -->
+
+  </div><!-- /reportBody -->
+
+</main>
+
+<script>
+  const PAGE_TIMESTAMP = "{{ timestamp }}";
+</script>
+<script src="/static/js/report.js"></script>
+</body>
+</html>

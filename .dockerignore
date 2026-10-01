@@ -1,0 +1,45 @@
+# ============================================================
+# .dockerignore
+# Docker イメージビルド時に除外するファイル・ディレクトリ
+# ============================================================
+
+# 環境変数ファイル（機密情報）
+.env
+
+# 診断出力・アップロードファイル（ボリュームマウントで管理）
+output/
+uploads/
+logs/
+findings/
+
+# Python キャッシュ
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# 仮想環境
+.venv/
+venv/
+env/
+
+# Git
+.git/
+.gitignore
+
+# テストデータ
+testdata/
+test_*.py
+
+# エディタ・OS
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Excel 一時ファイル
+~$*.xlsx
+~$*.xlsm

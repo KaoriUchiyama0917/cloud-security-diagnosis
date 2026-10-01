@@ -1,0 +1,1814 @@
+/* ============================================================
+   AWSクラウドセキュリティ診断ツール - 共通スタイル
+   ============================================================ */
+
+:root {
+  --color-bg: #edf2fa;
+  --color-surface: #ffffff;
+  --color-border: #e2e8f0;
+  --color-text: #1a202c;
+  --color-text-muted: #718096;
+  --color-primary: #2563eb;
+  --color-primary-hover: #1d4ed8;
+  --color-primary-light: #eff6ff;
+
+  /* CSPM ステータス */
+  --color-pass: #16a34a;
+  --color-pass-bg: #f0fdf4;
+  --color-pass-border: #bbf7d0;
+  --color-fail: #dc2626;
+  --color-fail-bg: #fef2f2;
+  --color-fail-border: #fecaca;
+
+  /* AI 判定 */
+  --color-correct: #16a34a;
+  --color-correct-bg: #f0fdf4;
+  --color-incorrect: #dc2626;
+  --color-incorrect-bg: #fef2f2;
+  --color-needs-review: #d97706;
+  --color-needs-review-bg: #fffbeb;
+
+  /* リスク */
+  --color-high: #dc2626;
+  --color-high-bg: #fef2f2;
+  --color-medium: #d97706;
+  --color-medium-bg: #fffbeb;
+  --color-low: #16a34a;
+  --color-low-bg: #f0fdf4;
+
+  --radius: 8px;
+  --radius-lg: 12px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.06);
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Noto Sans JP",
+               "Yu Gothic", sans-serif;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-size: 14px;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+/* ============================================================
+   ナビゲーション
+   ============================================================ */
+
+.nav {
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  height: 56px;
+  gap: 32px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: var(--shadow);
+}
+
+.nav-brand {
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--color-text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.nav-brand .icon {
+  font-size: 20px;
+}
+
+.nav-links {
+  display: flex;
+  gap: 4px;
+  list-style: none;
+  flex: 1;
+}
+
+.btn-template-download {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: var(--radius);
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  border: 1px solid #bfdbfe;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-decoration: none;
+  transition: background 0.15s, border-color 0.15s;
+  margin-left: auto;
+}
+
+.btn-template-download:hover {
+  background: #dbeafe;
+  border-color: var(--color-primary);
+  text-decoration: none;
+}
+
+.nav-links a {
+  display: block;
+  padding: 6px 14px;
+  border-radius: var(--radius);
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-weight: 500;
+  transition: background 0.15s, color 0.15s;
+}
+
+.nav-links a:hover,
+.nav-links a.active {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+/* ============================================================
+   レイアウト
+   ============================================================ */
+
+.page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 32px 24px 64px;
+}
+
+.page-title {
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.page-subtitle {
+  color: var(--color-text-muted);
+  margin-bottom: 32px;
+  font-size: 13px;
+}
+
+/* ============================================================
+   カード
+   ============================================================ */
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  box-shadow: var(--shadow);
+}
+
+.card + .card {
+  margin-top: 20px;
+}
+
+.card-title {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.card-title .icon {
+  font-size: 18px;
+}
+
+/* ============================================================
+   ボタン
+   ============================================================ */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 20px;
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: background 0.15s, opacity 0.15s, transform 0.1s;
+  white-space: nowrap;
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.btn-secondary {
+  background: var(--color-bg);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: #e9ecef;
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn-lg {
+  padding: 12px 28px;
+  font-size: 15px;
+}
+
+/* ============================================================
+   フォーム
+   ============================================================ */
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: var(--color-text);
+}
+
+.form-label .required {
+  color: var(--color-fail);
+  margin-left: 4px;
+}
+
+/* ============================================================
+   ファイルアップロード
+   ============================================================ */
+
+.upload-area {
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 40px 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  background: var(--color-bg);
+}
+
+.upload-area:hover,
+.upload-area.drag-over {
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+
+.upload-area.has-file {
+  border-color: var(--color-pass);
+  background: var(--color-pass-bg);
+}
+
+.upload-icon {
+  font-size: 40px;
+  margin-bottom: 12px;
+}
+
+.upload-text {
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.upload-text strong {
+  color: var(--color-primary);
+}
+
+.upload-filename {
+  margin-top: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-pass);
+}
+
+/* ============================================================
+   エラー表示
+   ============================================================ */
+
+.error-box {
+  background: var(--color-fail-bg);
+  border: 1px solid var(--color-fail-border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+
+.error-box-title {
+  font-weight: 700;
+  color: var(--color-fail);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.error-list {
+  list-style: none;
+  padding: 0;
+}
+
+.error-list li {
+  color: var(--color-fail);
+  font-size: 13px;
+  padding: 2px 0;
+}
+
+.error-list li::before {
+  content: "• ";
+}
+
+/* ============================================================
+   ヒアリング読込結果
+   ============================================================ */
+
+.info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 24px;
+}
+
+@media (max-width: 640px) {
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.info-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.info-value {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text);
+  word-break: break-all;
+}
+
+.info-value.empty {
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+/* ============================================================
+   診断進捗
+   ============================================================ */
+
+.progress-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.progress-step {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.progress-step.status-完了 {
+  background: var(--color-pass-bg);
+  border-color: var(--color-pass-border);
+}
+
+.progress-step.status-実行中 {
+  background: var(--color-primary-light);
+  border-color: #bfdbfe;
+}
+
+.progress-step.status-エラー {
+  background: var(--color-fail-bg);
+  border-color: var(--color-fail-border);
+}
+
+.step-icon {
+  font-size: 20px;
+  width: 28px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.step-name {
+  font-weight: 600;
+  font-size: 14px;
+  flex: 1;
+}
+
+.step-status {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+.step-status.status-完了 {
+  background: var(--color-pass-bg);
+  color: var(--color-pass);
+  border: 1px solid var(--color-pass-border);
+}
+
+.step-status.status-実行中 {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  border: 1px solid #bfdbfe;
+}
+
+.step-status.status-待機中 {
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+}
+
+.step-status.status-エラー {
+  background: var(--color-fail-bg);
+  color: var(--color-fail);
+  border: 1px solid var(--color-fail-border);
+}
+
+.elapsed-time {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin-top: 12px;
+  text-align: right;
+}
+
+/* ============================================================
+   スピナー
+   ============================================================ */
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  vertical-align: middle;
+}
+
+/* ============================================================
+   サマリーカード（結果画面）
+   ============================================================ */
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.summary-stat {
+  text-align: center;
+  padding: 16px 8px;
+  background: var(--color-bg);
+  border-radius: var(--radius);
+  border: 1px solid var(--color-border);
+}
+
+.summary-stat-value {
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.summary-stat-label {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  margin-top: 4px;
+  font-weight: 600;
+}
+
+.summary-stat.pass .summary-stat-value { color: var(--color-pass); }
+.summary-stat.fail .summary-stat-value { color: var(--color-fail); }
+.summary-stat.ai .summary-stat-value { color: var(--color-primary); }
+
+/* ============================================================
+   AI 判定基準カード
+   ============================================================ */
+
+.legend-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.legend-card {
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  border: 1px solid;
+}
+
+.legend-card.correct {
+  background: var(--color-correct-bg);
+  border-color: #bbf7d0;
+}
+
+.legend-card.incorrect {
+  background: var(--color-incorrect-bg);
+  border-color: #fecaca;
+}
+
+.legend-card.needs-review {
+  background: var(--color-needs-review-bg);
+  border-color: #fde68a;
+}
+
+.legend-card-title {
+  font-weight: 700;
+  font-size: 13px;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-card.correct .legend-card-title { color: var(--color-correct); }
+.legend-card.incorrect .legend-card-title { color: var(--color-incorrect); }
+.legend-card.needs-review .legend-card-title { color: var(--color-needs-review); }
+
+.legend-card-desc {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+/* リスク凡例 */
+.risk-legend-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.risk-legend-item {
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  border: 1px solid;
+  text-align: center;
+}
+
+.risk-legend-item.high {
+  background: var(--color-high-bg);
+  border-color: #fecaca;
+  color: var(--color-high);
+}
+
+.risk-legend-item.medium {
+  background: var(--color-medium-bg);
+  border-color: #fde68a;
+  color: var(--color-medium);
+}
+
+.risk-legend-item.low {
+  background: var(--color-low-bg);
+  border-color: #bbf7d0;
+  color: var(--color-low);
+}
+
+.risk-legend-label {
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.risk-legend-desc {
+  font-size: 11px;
+  opacity: 0.8;
+  margin-top: 2px;
+}
+
+/* リスクレベルの丸 */
+.risk-legend-label::before {
+  content: "";
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+
+.risk-legend-item.high .risk-legend-label::before {
+  background: var(--color-high);
+}
+
+.risk-legend-item.medium .risk-legend-label::before {
+  background: var(--color-medium);
+}
+
+.risk-legend-item.low .risk-legend-label::before {
+  background: var(--color-low);
+}
+
+/* ============================================================
+   バッジ
+   ============================================================ */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.badge-pass {
+  background: var(--color-pass-bg);
+  color: var(--color-pass);
+  border: 1px solid var(--color-pass-border);
+}
+
+.badge-fail {
+  background: var(--color-fail-bg);
+  color: var(--color-fail);
+  border: 1px solid var(--color-fail-border);
+}
+
+.badge-correct {
+  background: var(--color-correct-bg);
+  color: var(--color-correct);
+  border: 1px solid #bbf7d0;
+}
+
+.badge-incorrect {
+  background: var(--color-incorrect-bg);
+  color: var(--color-incorrect);
+  border: 1px solid #fecaca;
+}
+
+.badge-needs-review {
+  background: var(--color-needs-review-bg);
+  color: var(--color-needs-review);
+  border: 1px solid #fde68a;
+}
+
+.badge-high {
+  background: var(--color-high-bg);
+  color: var(--color-high);
+  border: 1px solid #fecaca;
+}
+
+.badge-medium {
+  background: var(--color-medium-bg);
+  color: var(--color-medium);
+  border: 1px solid #fde68a;
+}
+
+.badge-low {
+  background: var(--color-low-bg);
+  color: var(--color-low);
+  border: 1px solid #bbf7d0;
+}
+
+.badge-none {
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+}
+
+/* ============================================================
+   Finding テーブル
+   ============================================================ */
+
+.table-wrap {
+  overflow-x: auto;
+  border-radius: var(--radius);
+  border: 1px solid var(--color-border);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+thead {
+  background: var(--color-bg);
+}
+
+th {
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+
+td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: middle;
+}
+
+tr:last-child td {
+  border-bottom: none;
+}
+
+tbody tr {
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+tbody tr:hover {
+  background: var(--color-primary-light);
+}
+
+tbody tr.selected {
+  background: var(--color-primary-light);
+}
+
+/* ============================================================
+   Finding 詳細パネル
+   ============================================================ */
+
+.detail-panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  box-shadow: var(--shadow-md);
+}
+
+.detail-panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  gap: 12px;
+}
+
+.detail-panel-title {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.detail-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 20px;
+  color: var(--color-text-muted);
+  padding: 4px;
+  line-height: 1;
+  border-radius: var(--radius);
+  transition: background 0.15s;
+}
+
+.detail-close:hover {
+  background: var(--color-bg);
+}
+
+.detail-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.detail-section {
+  margin-bottom: 20px;
+}
+
+.detail-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+}
+
+.detail-section-body {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--color-text);
+}
+
+.detail-hearing-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 16px;
+  font-size: 13px;
+}
+
+.detail-hearing-label {
+  color: var(--color-text-muted);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.detail-hearing-value {
+  color: var(--color-text);
+}
+
+.detail-hearing-value.empty {
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+.missing-list {
+  list-style: none;
+  padding: 0;
+}
+
+.missing-list li {
+  padding: 4px 0;
+  font-size: 13px;
+  color: var(--color-needs-review);
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.missing-list li::before {
+  content: "→";
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   履歴テーブル
+   ============================================================ */
+
+.history-table tbody tr {
+  cursor: pointer;
+}
+
+/* ============================================================
+   空状態
+   ============================================================ */
+
+.empty-state {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--color-text-muted);
+}
+
+.empty-state-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+
+.empty-state-text {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.empty-state-sub {
+  font-size: 13px;
+}
+
+/* ============================================================
+   ローディング
+   ============================================================ */
+
+.loading-overlay {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+  gap: 12px;
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+/* ============================================================
+   MFA コード入力モーダル
+   ============================================================ */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  padding: 32px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+}
+
+.modal-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.modal-desc {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin-bottom: 20px;
+  line-height: 1.6;
+}
+
+.modal-input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  font-size: 20px;
+  letter-spacing: 0.2em;
+  text-align: center;
+  font-family: monospace;
+  margin-bottom: 16px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.modal-input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.15);
+}
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+/* ============================================================
+   コスト表示
+   ============================================================ */
+
+.cost-display {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  font-family: monospace;
+}
+
+.cost-display strong {
+  color: var(--color-text);
+}
+
+/* ============================================================
+   ステップカード（事前画面）
+   ============================================================ */
+
+.step-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  box-shadow: var(--shadow);
+  margin-bottom: 20px;
+}
+
+.step-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.step-number {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.step-number-done {
+  background: var(--color-pass);
+}
+
+.step-number-running {
+  background: var(--color-primary);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.step-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.step-desc {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin-bottom: 16px;
+  line-height: 1.7;
+}
+
+.section-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 10px;
+}
+
+/* ============================================================
+   AIモデル選択カード
+   ============================================================ */
+
+.model-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+}
+
+.model-card {
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+  display: block;
+  background: var(--color-bg);
+}
+
+.model-card:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+
+.model-card.selected {
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.15);
+}
+
+.model-radio {
+  display: none; /* ラジオボタン自体は非表示、カード全体がクリック領域 */
+}
+
+.model-card-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.model-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.model-tag {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  width: fit-content;
+}
+
+.model-tag-fast {
+  background: #fef9c3;
+  color: #854d0e;
+  border: 1px solid #fde68a;
+}
+
+.model-tag-smart {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  border: 1px solid #bfdbfe;
+}
+
+.model-desc-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.model-desc-list li {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  padding-left: 14px;
+  position: relative;
+}
+
+.model-desc-list li::before {
+  content: "•";
+  position: absolute;
+  left: 4px;
+  color: var(--color-primary);
+}
+
+/* ============================================================
+   MFA入力
+   ============================================================ */
+
+.mfa-input-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 280px;
+}
+
+.mfa-input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius);
+  font-size: 28px;
+  letter-spacing: 0.3em;
+  text-align: center;
+  font-family: monospace;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  background: var(--color-surface);
+}
+
+.mfa-input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.15);
+}
+
+.mfa-hint {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  line-height: 1.6;
+}
+
+/* ============================================================
+   ユーティリティ
+   ============================================================ */
+
+.hidden { display: none !important; }
+.text-muted { color: var(--color-text-muted); }
+.text-center { text-align: center; }
+.mt-4 { margin-top: 4px; }
+.mt-8 { margin-top: 8px; }
+.mt-16 { margin-top: 16px; }
+.mt-24 { margin-top: 24px; }
+.mb-16 { margin-bottom: 16px; }
+.flex { display: flex; }
+.flex-wrap { flex-wrap: wrap; }
+.gap-8 { gap: 8px; }
+.gap-12 { gap: 12px; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.font-mono { font-family: monospace; }
+.text-sm { font-size: 12px; }
+.mt-12 { margin-top: 12px; }
+
+/* ============================================================
+   診断員レビューセクション
+   ============================================================ */
+
+.review-section-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--color-border);
+}
+
+.review-status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.review-status-unreviewed {
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+}
+
+.review-status-approved {
+  background: var(--color-pass-bg);
+  color: var(--color-pass);
+  border: 1px solid var(--color-pass-border);
+}
+
+.review-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 640px) {
+  .review-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.review-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.review-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.review-label-sub {
+  font-size: 10px;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--color-text-muted);
+}
+
+.review-select {
+  padding: 7px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-family: inherit;
+  background: var(--color-surface);
+  color: var(--color-text);
+  outline: none;
+  transition: border-color 0.15s;
+  cursor: pointer;
+}
+
+.review-select:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+}
+
+.review-textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-family: inherit;
+  background: var(--color-surface);
+  color: var(--color-text);
+  resize: vertical;
+  outline: none;
+  line-height: 1.6;
+  transition: border-color 0.15s;
+}
+
+.review-textarea:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+}
+
+.review-checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.review-checkbox-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--color-primary);
+}
+
+.review-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.review-save-msg {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.review-save-ok {
+  color: var(--color-pass);
+}
+
+.review-save-error {
+  color: var(--color-fail);
+}
+
+/* ============================================================
+   レポート画面
+   ============================================================ */
+
+.report-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0 20px;
+  gap: 12px;
+}
+
+.report-document {
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 48px 56px;
+  max-width: 860px;
+  margin: 0 auto;
+  box-shadow: var(--shadow-md);
+}
+
+/* 表紙ヘッダー */
+.report-cover {
+  text-align: center;
+  padding: 32px 0 40px;
+  border-bottom: 2px solid var(--color-primary);
+  margin-bottom: 40px;
+}
+
+.report-cover-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 16px;
+}
+
+.report-cover-system {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--color-text);
+  margin-bottom: 16px;
+  line-height: 1.3;
+}
+
+.report-cover-meta {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  flex-wrap: wrap;
+}
+
+/* セクション */
+.report-section {
+  margin-bottom: 48px;
+}
+
+.report-section-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.report-section-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--color-text);
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.report-section-desc {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin-bottom: 20px;
+  line-height: 1.7;
+}
+
+/* サマリー統計 */
+.report-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.report-stat {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 16px;
+  text-align: center;
+}
+
+.report-stat-value {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--color-text);
+  line-height: 1;
+  margin-bottom: 6px;
+}
+
+.report-stat-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.report-stat-pass .report-stat-value { color: var(--color-pass); }
+.report-stat-fail .report-stat-value { color: var(--color-fail); }
+.report-stat-high   .report-stat-value { color: #dc2626; }
+.report-stat-medium .report-stat-value { color: #d97706; }
+.report-stat-low    .report-stat-value { color: #2563eb; }
+.report-stat-none   .report-stat-value { color: var(--color-text-muted); }
+
+/* 履歴画面: リスク別件数バッジ */
+.history-risk-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.history-risk-count {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.history-risk-count-high   { background: #fee2e2; color: #dc2626; }
+.history-risk-count-medium { background: #fef3c7; color: #d97706; }
+.history-risk-count-low    { background: #dbeafe; color: #2563eb; }
+
+/* リスクレベル別件数バー */
+.report-risk-counts {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.report-risk-count-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 600;
+  flex: 1;
+  min-width: 140px;
+}
+
+.report-risk-count-label {
+  flex: 1;
+}
+
+.report-risk-count-value {
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.report-risk-count-high   { background: #fee2e2; color: #dc2626; }
+.report-risk-count-medium { background: #fef3c7; color: #d97706; }
+.report-risk-count-low    { background: #dbeafe; color: #2563eb; }
+
+/* リスクレベル凡例 */
+.report-risk-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+}
+
+.report-risk-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--color-text);
+  line-height: 1.5;
+}
+
+.report-risk-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.report-risk-high   .report-risk-dot { background: #dc2626; }
+.report-risk-medium .report-risk-dot { background: #d97706; }
+.report-risk-low    .report-risk-dot { background: #2563eb; }
+.report-risk-none   .report-risk-dot { background: var(--color-text-muted); }
+
+/* システム情報テーブル */
+.report-info-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.report-info-th {
+  width: 200px;
+  padding: 10px 14px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-align: left;
+  vertical-align: top;
+  white-space: nowrap;
+}
+
+.report-info-td {
+  padding: 10px 14px;
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  line-height: 1.6;
+}
+
+/* Finding カード */
+.report-finding-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+
+.report-finding-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-border);
+  flex-wrap: wrap;
+}
+
+.report-finding-num {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.report-finding-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text);
+  flex: 1;
+  min-width: 0;
+}
+
+.report-risk-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+}
+
+.report-risk-badge-high   { background: #fee2e2; color: #dc2626; }
+.report-risk-badge-medium { background: #fef3c7; color: #d97706; }
+.report-risk-badge-low    { background: #dbeafe; color: #2563eb; }
+.report-risk-badge-none   { background: var(--color-bg); color: var(--color-text-muted); border: 1px solid var(--color-border); }
+
+.report-reviewed-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  background: #dcfce7;
+  color: #16a34a;
+  flex-shrink: 0;
+}
+
+.report-reviewed-badge-pending {
+  background: #f1f5f9;
+  color: var(--color-text-muted);
+}
+
+.report-finding-target {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: #f8fafc;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 12px;
+}
+
+.report-finding-target-label {
+  font-weight: 600;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.report-finding-target-value {
+  color: var(--color-text);
+  font-family: monospace;
+  word-break: break-all;
+}
+
+.report-finding-body {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.report-finding-field-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+
+.report-finding-field-value {
+  font-size: 13px;
+  color: var(--color-text);
+  line-height: 1.7;
+}
+
+/* 問題なしメッセージ */
+.report-no-findings {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #16a34a;
+  text-align: center;
+}
+
+/* フッター */
+.report-footer {
+  margin-top: 48px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border);
+  font-size: 11px;
+  color: var(--color-text-muted);
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+/* 印刷時非表示 */
+.no-print {
+  /* 画面表示時は通常表示 */
+}
+
+/* ============================================================
+   印刷スタイル
+   ============================================================ */
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  body {
+    background: #fff;
+    color: #000;
+  }
+
+  .page {
+    padding: 0;
+    max-width: none;
+  }
+
+  .report-document {
+    border: none;
+    box-shadow: none;
+    padding: 0;
+    max-width: none;
+    margin: 0;
+  }
+
+  .report-section {
+    page-break-inside: avoid;
+  }
+
+  .report-finding-card {
+    page-break-inside: avoid;
+    margin-bottom: 12px;
+  }
+
+  .report-cover {
+    page-break-after: always;
+  }
+
+  .report-summary-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .report-document {
+    padding: 24px 16px;
+  }
+
+  .report-summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .report-info-th {
+    width: 120px;
+  }
+}

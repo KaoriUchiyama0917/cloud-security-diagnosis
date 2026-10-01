@@ -1,0 +1,24 @@
+[
+    {
+        "message": "MFA is not enabled for IAM user dummy_user.",
+        "metadata": {
+            "event_code": "iam_user_mfa_enabled_console_access",
+            "product": {
+                "name": "Prowler",
+                "uid": "prowler",
+                "vendor_name": "Prowler",
+                "version": "5.43.0"
+            }
+        },
+        "severity_id": 4,
+        "severity": "High",
+        "status": "New",
+        "status_code": "FAIL",
+        "status_detail": "User dummy_user has Console Password enabled but MFA is not enabled.",
+        "resources": [
+            {
+                "name": "dummy_user"
+            }
+        ]
+    }
+]

@@ -1,0 +1,119 @@
+# =====================================================================
+# クラウド診断用 IAM Role 作成テンプレート
+# =====================================================================
+# 顧客AWSアカウントに、クラウド診断用のIAM Roleを作成します。
+#
+# 診断ツールはこのRoleをAssumeRoleし、
+# 許可された範囲でAWSのセキュリティ設定情報を取得します。
+#
+# 現在の権限：
+#   AWS管理ポリシー「SecurityAudit」
+#
+# 今後：
+#   診断項目の拡張に伴い、不足する参照権限を追加する想定です。
+# =====================================================================
+
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: >
+  Creates an IAM role for cloud security assessment.
+
+
+# =====================================================================
+# Parameters
+# =====================================================================
+# 顧客ごとに異なる値をスタック作成時に指定します。
+# =====================================================================
+
+Parameters:
+
+  TrustedPrincipalArn:
+    Type: String
+    Description: >
+      ARN of the AWS principal allowed to assume this diagnosis role.
+    # このRoleの利用を許可するAWSユーザー/Role等のARN。
+
+  ExternalId:
+    Type: String
+    NoEcho: true
+    Description: >
+      External ID required when assuming this diagnosis role.
+    # AssumeRole時に確認する追加条件。
+    # 顧客ごとに異なる値を使用する想定。
+
+
+# =====================================================================
+# Resources
+# =====================================================================
+
+Resources:
+
+  CloudSecurityDiagnosisRole:
+    Type: AWS::IAM::Role
+
+    Properties:
+
+      RoleName: CloudSecurityDiagnosisRole
+
+      Description: >
+        IAM role used by the cloud security diagnosis tool.
+
+      MaxSessionDuration: 3600
+      # Roleの最大セッション時間：1時間
+
+
+      # -----------------------------------------------------------------
+      # Trust Policy：誰がこのRoleを使えるか
+      # -----------------------------------------------------------------
+
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+
+        Statement:
+          - Effect: Allow
+
+            Principal:
+              AWS: !Ref TrustedPrincipalArn
+
+            Action:
+              - sts:AssumeRole
+
+            Condition:
+              StringEquals:
+                sts:ExternalId: !Ref ExternalId
+
+
+      # -----------------------------------------------------------------
+      # Permission Policy：Roleを使って何を参照できるか
+      # -----------------------------------------------------------------
+
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/SecurityAudit
+
+        # SecurityAudit：
+        # IAM、S3、EC2/VPC、KMS、CloudTrailなど、
+        # セキュリティ監査に必要な設定情報を広く参照するための
+        # AWS管理ポリシー。
+        #
+        # 今後、不足する参照権限があれば追加Policyで補完する。
+
+
+      Tags:
+        - Key: Purpose
+          Value: CloudSecurityDiagnosis
+
+
+# =====================================================================
+# Outputs
+# =====================================================================
+
+Outputs:
+
+  DiagnosisRoleArn:
+    Description: >
+      ARN of the IAM role used for cloud security diagnosis.
+
+    Value: !GetAtt CloudSecurityDiagnosisRole.Arn
+
+    # 作成したRole ARNを出力。
+    # 診断ツールがAssumeRoleするときに使用する。

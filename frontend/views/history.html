@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>履歴 | AWSクラウドセキュリティ診断</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+<!-- ナビゲーション -->
+<nav class="nav">
+  <span class="nav-brand">クラウドセキュリティ診断</span>
+  <ul class="nav-links">
+    <li><a href="/">診断開始</a></li>
+    <li><a href="/history" class="active">履歴</a></li>
+  </ul>
+</nav>
+
+<main class="page">
+  <h1 class="page-title">診断履歴</h1>
+  <p class="page-subtitle">過去の診断結果を確認できます。行をクリックすると結果画面を開きます。</p>
+
+  <!-- ローディング -->
+  <div id="loadingState" class="loading-overlay">
+    <span class="spinner"></span> 履歴を読み込んでいます...
+  </div>
+
+  <!-- エラー -->
+  <div id="errorState" class="hidden">
+    <div class="error-box">
+      <div class="error-box-title">エラー</div>
+      <p id="errorMsg" style="color:var(--color-fail); font-size:13px;"></p>
+    </div>
+  </div>
+
+  <!-- 履歴一覧 -->
+  <div id="historyBody" class="hidden">
+
+    <!-- 空状態 -->
+    <div id="emptyState" class="card hidden">
+      <div class="empty-state">
+        <div class="empty-state-text">診断履歴がありません</div>
+        <div class="empty-state-sub">診断を実行すると、ここに結果が表示されます。</div>
+        <div class="mt-16">
+          <a href="/" class="btn btn-primary">診断を開始する</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- テーブル -->
+    <div class="card" id="historyTableCard">
+      <div class="table-wrap">
+        <table class="history-table">
+          <thead>
+            <tr>
+              <th>診断対象</th>
+              <th>診断日時</th>
+              <th>最大リスク</th>
+              <th>リスク別件数（FAIL）</th>
+              <th>診断件数</th>
+              <th>AI 料金</th>
+            </tr>
+          </thead>
+          <tbody id="historyTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /historyBody -->
+
+</main>
+
+<script src="/static/js/history.js"></script>
+</body>
+</html>

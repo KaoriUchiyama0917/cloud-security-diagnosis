@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>診断開始 | クラウドセキュリティ診断</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+<!-- ナビゲーション -->
+<nav class="nav">
+  <span class="nav-brand">クラウドセキュリティ診断</span>
+  <ul class="nav-links">
+    <li><a href="/" class="active">診断開始</a></li>
+    <li><a href="/history">履歴</a></li>
+  </ul>
+  <a href="/api/template/download" class="btn-template-download" download>
+    ヒアリングシートをダウンロード
+  </a>
+</nav>
+
+<main class="page">
+  <h1 class="page-title">診断開始</h1>
+  <p class="page-subtitle">下記の手順に沿って入力し、診断を開始してください。</p>
+
+  <!-- ============================================================
+       STEP 1: ヒアリングシートアップロード
+       ============================================================ -->
+  <div class="step-card" id="step1Card">
+    <div class="step-header">
+      <div class="step-number">1</div>
+      <div class="step-title">ヒアリングシートを選択する</div>
+    </div>
+
+    <div
+      id="uploadArea"
+      class="upload-area"
+      onclick="document.getElementById('fileInput').click()"
+      ondragover="handleDragOver(event)"
+      ondragleave="handleDragLeave(event)"
+      ondrop="handleDrop(event)"
+    >
+      <div class="upload-text">
+        <strong>クリックしてファイルを選択</strong>、またはここにドラッグ＆ドロップ
+      </div>
+      <div class="upload-text mt-4" style="font-size:12px;">Excel ファイル（.xlsx）</div>
+      <div id="uploadFilename" class="upload-filename hidden"></div>
+    </div>
+    <input type="file" id="fileInput" accept=".xlsx,.xlsm" class="hidden">
+
+    <div class="mt-16">
+      <button class="btn btn-primary" id="loadBtn" disabled>
+        <span class="spinner hidden" id="loadSpinner"></span>
+        読み込む
+      </button>
+    </div>
+
+    <!-- エラー表示 -->
+    <div id="errorBox" class="error-box hidden mt-16">
+      <div class="error-box-title"> 入力エラー</div>
+      <ul class="error-list" id="errorList"></ul>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       STEP 2: 読込結果確認
+       ============================================================ -->
+  <div class="step-card hidden" id="step2Card">
+    <div class="step-header">
+      <div class="step-number step-number-done">✓</div>
+      <div class="step-title">読込結果を確認する</div>
+    </div>
+
+    <div class="mb-16">
+      <div class="section-label">基本情報</div>
+      <div class="info-grid" id="basicInfoGrid"></div>
+    </div>
+
+    <div class="mb-16">
+      <div class="section-label">診断内容</div>
+      <div id="diagnosisItems"></div>
+    </div>
+
+    <div>
+      <div class="section-label">ヒアリング回答（MFA）</div>
+      <div class="info-grid" id="mfaHearingGrid"></div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       STEP 3: AIモデル選択
+       ============================================================ -->
+  <div class="step-card hidden" id="step3Card">
+    <div class="step-header">
+      <div class="step-number">2</div>
+      <div class="step-title">使用するモデルを選択する</div>
+    </div>
+    <p class="step-desc">診断結果の評価に使用するAIモデルを選んでください。</p>
+
+    <div class="model-grid" id="modelGrid">
+
+      <label class="model-card" data-model-id="haiku">
+        <input type="radio" name="aiModel" value="haiku" class="model-radio">
+        <div class="model-card-inner">
+          <div class="model-name"> Claude 3 Haiku</div>
+          <div class="model-tag model-tag-fast">高速・低コスト</div>
+          <ul class="model-desc-list">
+            <li>応答が速く、コストを抑えたい場合に最適</li>
+            <li>標準的な診断に十分な精度</li>
+            <li>料金目安: 約 $0.001 / 診断</li>
+          </ul>
+        </div>
+      </label>
+
+      <label class="model-card" data-model-id="sonnet">
+        <input type="radio" name="aiModel" value="sonnet" class="model-radio">
+        <div class="model-card-inner">
+          <div class="model-name">Claude 3.5 Sonnet</div>
+          <div class="model-tag model-tag-smart">高精度・推奨</div>
+          <ul class="model-desc-list">
+            <li>より詳細な分析と高い判断精度</li>
+            <li>複雑なセキュリティ設定の評価に適する</li>
+            <li>料金目安: 約 $0.003 / 診断</li>
+          </ul>
+        </div>
+      </label>
+
+    </div>
+
+    <div id="modelErrorBox" class="error-box hidden mt-16">
+      <div class="error-box-title"> AIモデルを選択してください</div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       STEP 4: MFA認証
+       ============================================================ -->
+  <div class="step-card hidden" id="step4Card">
+    <div class="step-header">
+      <div class="step-number">3</div>
+      <div class="step-title">MFAコード（MFAを設定している場合のみ）</div>
+    </div>
+    <p class="step-desc">
+      MFA（多要素認証）を設定している場合は、スマートフォンの認証アプリに表示されている <strong>6桁のコード</strong> を入力してください。<br>
+      ※ MFAを設定していない場合は空欄のまま進んでください。
+    </p>
+
+    <div class="mfa-input-wrap">
+      <input
+        type="text"
+        id="mfaCodeInput"
+        class="mfa-input"
+        maxlength="6"
+        placeholder="000000"
+        autocomplete="one-time-code"
+        inputmode="numeric"
+      >
+      <p class="mfa-hint">※ MFAコードは30秒ごとに更新されます。入力後すぐに診断を開始してください。</p>
+    </div>
+
+    <div id="mfaErrorBox" class="error-box hidden mt-16">
+      <div class="error-box-title"> <span id="mfaErrorMsg">MFAコードを入力してください</span></div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       STEP 5: 診断開始ボタン
+       ============================================================ -->
+  <div class="step-card hidden" id="step5Card">
+    <div class="step-header">
+      <div class="step-number">4</div>
+      <div class="step-title">診断を開始する</div>
+    </div>
+    <p class="step-desc">
+      上記の内容を確認し、問題がなければ診断を開始してください。<br>
+      診断には数分かかる場合があります。
+    </p>
+    <button class="btn btn-primary btn-lg" id="startBtn">
+      診断開始
+    </button>
+  </div>
+
+  <!-- ============================================================
+       STEP 6: 診断進捗
+       ============================================================ -->
+  <div class="step-card hidden" id="step6Card">
+    <div class="step-header">
+      <div class="step-number step-number-running">⚙</div>
+      <div class="step-title">診断中...</div>
+    </div>
+
+    <div class="progress-steps" id="progressSteps"></div>
+    <div class="elapsed-time" id="elapsedTime"></div>
+
+    <div id="progressError" class="error-box hidden mt-16">
+      <div class="error-box-title">エラー</div>
+      <p id="progressErrorMsg" style="color: var(--color-fail); font-size:13px;"></p>
+      <div class="mt-16">
+        <button class="btn btn-secondary" id="retryBtn">最初からやり直す</button>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script src="/static/js/pre_diagnosis.js"></script>
+</body>
+</html>

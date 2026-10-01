@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>診断結果 | クラウドセキュリティ診断</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+<!-- ナビゲーション -->
+<nav class="nav">
+  <span class="nav-brand">クラウドセキュリティ診断</span>
+  <ul class="nav-links">
+    <li><a href="/">診断開始</a></li>
+    <li><a href="/history">履歴</a></li>
+  </ul>
+</nav>
+
+<main class="page">
+
+  <!-- ローディング -->
+  <div id="loadingState" class="loading-overlay">
+    <span class="spinner"></span> 診断結果を読み込んでいます...
+  </div>
+
+  <!-- エラー -->
+  <div id="errorState" class="hidden">
+    <div class="error-box">
+      <div class="error-box-title">エラー</div>
+      <p id="errorMsg" style="color:var(--color-fail); font-size:13px;"></p>
+    </div>
+  </div>
+
+  <!-- 結果本体 -->
+  <div id="resultBody" class="hidden">
+
+    <!-- 戻るリンク -->
+    <div class="mb-16">
+      <a href="/history" style="font-size:13px; color:var(--color-text-muted);">← 履歴一覧に戻る</a>
+    </div>
+
+    <!-- ① 上部サマリー -->
+    <div class="card" id="summaryCard">
+      <div class="flex items-center justify-between flex-wrap gap-8 mb-16">
+        <div>
+          <div class="page-title" id="summarySystemName" style="margin-bottom:4px;"></div>
+          <div class="text-muted" style="font-size:13px;" id="summaryDatetime"></div>
+        </div>
+        <div id="summaryCost" class="cost-display"></div>
+      </div>
+
+      <div class="summary-grid">
+        <div class="summary-stat">
+          <div class="summary-stat-value" id="statTotal">-</div>
+          <div class="summary-stat-label">診断件数</div>
+        </div>
+        <div class="summary-stat pass">
+          <div class="summary-stat-value" id="statPass">-</div>
+          <div class="summary-stat-label">PASS</div>
+        </div>
+        <div class="summary-stat fail">
+          <div class="summary-stat-value" id="statFail">-</div>
+          <div class="summary-stat-label">FAIL</div>
+        </div>
+        <div class="summary-stat ai">
+          <div class="summary-stat-value" id="statAi">-</div>
+          <div class="summary-stat-label">AI 評価</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ② AI 判定基準 / リスク基準 -->
+    <div class="card mt-16" id="legendCard">
+      <div class="flex flex-wrap gap-12 items-center justify-between mb-16">
+        <div class="card-title" style="margin-bottom:0;">AI 判定基準</div>
+        <div style="font-size:12px; color:var(--color-text-muted);">
+          CSPM（自動検出）と AI 評価は別の判定です
+        </div>
+      </div>
+
+      <div class="legend-grid mb-16">
+        <div class="legend-card incorrect">
+          <div class="legend-card-title">INCORRECT</div>
+          <div class="legend-card-desc">設定が不適切で対応が必要</div>
+        </div>
+        <div class="legend-card needs-review">
+          <div class="legend-card-title">NEEDS_REVIEW</div>
+          <div class="legend-card-desc">情報不足・追加確認が必要</div>
+        </div>
+        <div class="legend-card correct">
+          <div class="legend-card-title">CORRECT</div>
+          <div class="legend-card-desc">設定上問題ないと判断できる</div>
+        </div>
+      </div>
+
+      <div class="card-title" style="font-size:13px; margin-bottom:10px;">リスク基準</div>
+      <div class="risk-legend-grid">
+        <div class="risk-legend-item high">
+          <div class="risk-legend-label">HIGH</div>
+          <div class="risk-legend-desc">高リスク・早急な対応が必要</div>
+        </div>
+        <div class="risk-legend-item medium">
+          <div class="risk-legend-label">MEDIUM</div>
+          <div class="risk-legend-desc">中リスク・計画的に対応</div>
+        </div>
+        <div class="risk-legend-item low">
+          <div class="risk-legend-label">LOW</div>
+          <div class="risk-legend-desc">低リスク・状況を確認</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ③ Finding 一覧 -->
+    <div class="card mt-16">
+      <div class="card-title">Finding 一覧</div>
+      <p style="font-size:12px; color:var(--color-text-muted); margin-bottom:14px;">
+        行をクリックすると詳細を表示します。PASS は AI 評価の対象外です。
+      </p>
+
+      <div class="table-wrap">
+        <table id="findingTable">
+          <thead>
+            <tr>
+              <th>診断項目</th>
+              <th>対象</th>
+              <th>CSPM 判定</th>
+              <th>AI 判定</th>
+              <th>リスク</th>
+            </tr>
+          </thead>
+          <tbody id="findingTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ④ Finding 詳細パネル -->
+    <div id="detailPanel" class="detail-panel mt-16 hidden">
+      <div class="detail-panel-header">
+        <div class="detail-panel-title">Finding 詳細</div>
+        <button class="detail-close" id="detailCloseBtn" title="閉じる">✕</button>
+      </div>
+
+      <!-- メタ情報 -->
+      <div class="detail-meta" id="detailMeta"></div>
+
+      <!-- CSPM 検出内容 -->
+      <div class="detail-section">
+        <div class="detail-section-title">検出内容（CSPM）</div>
+        <div class="detail-section-body" id="detailMessage"></div>
+      </div>
+
+      <!-- AI 判定理由 -->
+      <div class="detail-section" id="detailAiSection">
+        <div class="detail-section-title">AI 判定理由</div>
+        <div class="detail-section-body" id="detailReason"></div>
+      </div>
+
+      <!-- セキュリティリスク -->
+      <div class="detail-section" id="detailRiskSection">
+        <div class="detail-section-title">セキュリティリスク</div>
+        <div class="detail-section-body" id="detailSecurityRisk"></div>
+      </div>
+
+      <!-- ヒアリング情報 -->
+      <div class="detail-section" id="detailHearingSection">
+        <div class="detail-section-title">AI が参照したヒアリング情報</div>
+        <div class="detail-hearing-grid" id="detailHearing"></div>
+      </div>
+
+      <!-- 追加確認事項 -->
+      <div class="detail-section" id="detailMissingSection">
+        <div class="detail-section-title">追加確認事項</div>
+        <ul class="missing-list" id="detailMissingList"></ul>
+      </div>
+
+      <!-- 診断員レビュー -->
+      <div class="detail-section" id="detailReviewSection">
+        <div class="review-section-header">
+          <div class="detail-section-title" style="margin-bottom:0;">診断員レビュー</div>
+          <span class="review-status-badge" id="reviewStatusBadge"></span>
+        </div>
+
+        <div class="review-grid">
+
+          <!-- 最終判定 -->
+          <div class="review-field">
+            <label class="review-label" for="reviewResult">最終判定</label>
+            <select class="review-select" id="reviewResult">
+              <option value="INCORRECT">INCORRECT</option>
+              <option value="NEEDS_REVIEW">NEEDS_REVIEW</option>
+              <option value="CORRECT">CORRECT</option>
+            </select>
+          </div>
+
+          <!-- リスクレベル -->
+          <div class="review-field">
+            <label class="review-label" for="reviewSeverity">リスクレベル</label>
+            <select class="review-select" id="reviewSeverity">
+              <option value="HIGH">HIGH</option>
+              <option value="MEDIUM">MEDIUM</option>
+              <option value="LOW">LOW</option>
+              <option value="NONE">NONE</option>
+            </select>
+          </div>
+
+        </div>
+
+        <!-- 判定理由 -->
+        <div class="review-field mt-12">
+          <label class="review-label" for="reviewReason">判定理由</label>
+          <textarea class="review-textarea" id="reviewReason" rows="4" placeholder="判定理由を入力してください"></textarea>
+        </div>
+
+        <!-- セキュリティリスク -->
+        <div class="review-field mt-12">
+          <label class="review-label" for="reviewSecurityRisk">セキュリティリスク</label>
+          <textarea class="review-textarea" id="reviewSecurityRisk" rows="3" placeholder="セキュリティリスクを入力してください"></textarea>
+        </div>
+
+        <!-- 推奨対応 -->
+        <div class="review-field mt-12">
+          <label class="review-label" for="reviewRecommendation">推奨対応</label>
+          <textarea class="review-textarea" id="reviewRecommendation" rows="3" placeholder="顧客向けレポートに記載する推奨対応を入力してください"></textarea>
+        </div>
+
+        <!-- 診断員メモ -->
+        <div class="review-field mt-12">
+          <label class="review-label" for="reviewNote">診断員メモ <span class="review-label-sub">（内部確認用）</span></label>
+          <textarea class="review-textarea" id="reviewNote" rows="3" placeholder="顧客への追加確認内容・AI判定変更理由・例外運用の確認内容など"></textarea>
+        </div>
+
+        <!-- 顧客レポート掲載可否 -->
+        <div class="review-field mt-12">
+          <label class="review-checkbox-label">
+            <input type="checkbox" id="reviewIncludeInReport" checked>
+            顧客レポートに掲載する
+          </label>
+        </div>
+
+        <!-- 確定ボタン -->
+        <div class="review-actions mt-16">
+          <button class="btn btn-primary" id="reviewSaveBtn">レビューを確定</button>
+          <span class="review-save-msg hidden" id="reviewSaveMsg"></span>
+        </div>
+
+      </div><!-- /detailReviewSection -->
+
+    </div>
+
+    <!-- レポート作成エリア（一番下） -->
+    <div class="card mt-16" id="reportCard">
+      <div class="flex items-center justify-between flex-wrap gap-12">
+        <div>
+          <div style="font-size:15px; font-weight:700; margin-bottom:4px;">📄 レポートを作成</div>
+          <div class="text-muted" style="font-size:13px;">診断員レビューが確定した内容をもとに、顧客向けレポートを生成します。</div>
+        </div>
+        <div class="flex items-center gap-12 flex-wrap">
+          <span class="hidden" id="reportBlockMsg" style="font-size:13px; color:var(--color-fail); font-weight:600;"></span>
+          <a id="reportBtn" href="#" class="btn btn-primary" style="text-decoration:none;">レポートを作成</a>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /resultBody -->
+
+</main>
+
+<script>
+  const PAGE_TIMESTAMP = "{{ timestamp }}";
+</script>
+<script src="/static/js/result.js"></script>
+</body>
+</html>
