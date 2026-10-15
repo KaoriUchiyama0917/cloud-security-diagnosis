@@ -113,25 +113,26 @@
 
     <!-- ③ Finding 一覧 -->
     <div class="card mt-16">
-      <div class="card-title">Finding 一覧</div>
+
+      <div class="account-result-header">
+        <div>
+          <div class="card-title" style="margin-bottom:4px;">
+            AWS Account
+          </div>
+
+          <div class="account-result-id" id="findingAccountId">-</div>
+        </div>
+
+        <div class="account-result-role" id="findingRoleName">-</div>
+      </div>
+
       <p style="font-size:12px; color:var(--color-text-muted); margin-bottom:14px;">
         行をクリックすると詳細を表示します。PASS は AI 評価の対象外です。
       </p>
 
-      <div class="table-wrap">
-        <table id="findingTable">
-          <thead>
-            <tr>
-              <th>診断項目</th>
-              <th>対象</th>
-              <th>CSPM 判定</th>
-              <th>AI 判定</th>
-              <th>リスク</th>
-            </tr>
-          </thead>
-          <tbody id="findingTableBody"></tbody>
-        </table>
-      </div>
+      <!-- 診断項目ごとにJSで生成 -->
+      <div id="findingGroups" class="finding-groups"></div>
+
     </div>
 
     <!-- ④ Finding 詳細パネル -->
@@ -252,7 +253,7 @@
     <div class="card mt-16" id="reportCard">
       <div class="flex items-center justify-between flex-wrap gap-12">
         <div>
-          <div style="font-size:15px; font-weight:700; margin-bottom:4px;">📄 レポートを作成</div>
+          <div style="font-size:15px; font-weight:700; margin-bottom:4px;">レポートを作成</div>
           <div class="text-muted" style="font-size:13px;">診断員レビューが確定した内容をもとに、顧客向けレポートを生成します。</div>
         </div>
         <div class="flex items-center gap-12 flex-wrap">

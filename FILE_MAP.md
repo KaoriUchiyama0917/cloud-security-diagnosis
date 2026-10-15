@@ -10,8 +10,8 @@
 ```
 cloud-security-diagnosis/
 ├── app.py                          ← Web アプリ エントリーポイント（FastAPI）
-├── diagnosis_runner.py             ← 診断処理コア（バックグラウンド実行）
-├── main.py                         ← CLI 実行用エントリーポイント（旧版・開発用）
+├── diagnosis_runner.py             ← 診断処理コア（バックグラウンド実行・進捗管理）
+├── main.py                         ← CLI 実行用エントリーポイント（開発・デバッグ用）
 │
 ├── backend/
 │   ├── input/
@@ -27,19 +27,24 @@ cloud-security-diagnosis/
 │   ├── views/
 │   │   ├── pre_diagnosis.html      ← 診断開始画面（Jinja2 テンプレート）
 │   │   ├── result.html             ← 診断結果画面（Jinja2 テンプレート）
+│   │   ├── report.html             ← 顧客向けレポート画面（Jinja2 テンプレート）
 │   │   └── history.html            ← 履歴一覧画面（Jinja2 テンプレート）
 │   └── static/
 │       ├── css/style.css           ← 全画面共通スタイル
 │       ├── js/pre_diagnosis.js     ← 診断開始画面のロジック
 │       ├── js/result.js            ← 診断結果画面のロジック
+│       ├── js/report.js            ← 顧客向けレポート画面のロジック
 │       └── js/history.js           ← 履歴画面のロジック
 │
 ├── templates/
-│   ├── hearing_template_v2.xlsx    ← ヒアリングシート（顧客配布用テンプレート）
+│   ├── template.xlsx               ← ヒアリングシート（顧客配布用テンプレート）
 │   └── customer_diagnosis_role.yaml← 診断用 IAM Role の CloudFormation テンプレート
 │
-├── output/                         ← 診断結果保存先（タイムスタンプ別フォルダ）
-├── uploads/                        ← アップロードされたヒアリングシート一時保存
+├── testdata/
+│   └── mfa_fail_dummy.ocsf.json    ← AI 評価テスト用ダミー Prowler 出力（OCSF 形式）
+│
+├── output/                         ← 診断結果保存先（タイムスタンプ別フォルダ）※Git管理外
+├── uploads/                        ← アップロードされたヒアリングシート一時保存 ※Git管理外
 │
 ├── Dockerfile                      ← FastAPI アプリ用コンテナ定義
 ├── compose.yaml                    ← Docker Compose 設定（DooD 構成）
@@ -57,8 +62,28 @@ cloud-security-diagnosis/
 | ファイル | 役割 | 呼び出し先 | 影響範囲 |
 |---|---|---|---|
 | [`app.py`](app.py) | FastAPI アプリ本体。ルーティング・API エンドポイント定義 | `diagnosis_runner.py`、`backend/input/*` | 全 API・全画面 |
-| [`diagnosis_runner.py`](diagnosis_runner.py) | 診断処理をバックグラウンドスレッドで実行。進捗管理・結果保存 | `backend/input/*`、`backend/aws/*`、`backend/ai/*` | 診断フロー全体 |
-| [`main.py`](main.py) | CLI から直接診断を実行する旧エントリーポイント（開発・デバッグ用） | `backend/input/*`、`backend/aws/*`、`backend/ai/*` | CLI 実行時のみ |
+| [`diagnosis_runner.py`](diagnosis_runner.py) | 診断処理をバックグラウンドスレッドで実行。進捗管理・Finding 解析・AI マージ・結果保存 | `backend/input/*`、`backend/aws/*`、`backend/ai/*` | 診断フロー全体 |
+| [`main.py`](main.py) | CLI から直接診断を実行する開発・デバッグ用エントリーポイント | `backend/input/*`、`backend/aws/*`、`backend/ai/*` | CLI 実行時のみ |
+
+---
+
+### app.py — エンドポイント一覧
+
+| メソッド | パス | 役割 |
+|---|---|---|
+| `GET` | `/` | 診断開始画面（`pre_diagnosis.html`） |
+| `GET` | `/result/{timestamp}` | 診断結果画面（`result.html`） |
+| `GET` | `/history` | 履歴一覧画面（`history.html`） |
+| `GET` | `/report/{timestamp}` | 顧客向けレポート画面（`report.html`） |
+| `GET` | `/api/template/download` | ヒアリングシートテンプレート（`template.xlsx`）ダウンロード |
+| `POST` | `/api/hearing/upload` | Excel アップロード・読み込み・バリデーション |
+| `POST` | `/api/diagnosis/start` | 診断開始（バックグラウンドスレッド起動） |
+| `GET` | `/api/diagnosis/{id}/progress` | 診断進捗（SSE） |
+| `GET` | `/api/result/{timestamp}` | 診断結果 JSON 取得 |
+| `GET` | `/api/history` | 過去診断履歴一覧 JSON 取得 |
+| `GET` | `/api/report/{timestamp}` | 顧客向けレポートデータ取得（レビュー済み Finding のみ） |
+| `POST` | `/api/result/{timestamp}/review/{finding_idx}` | 診断員レビュー保存 |
+| `GET` | `/api/result/{timestamp}/review/{finding_idx}` | 診断員レビュー取得 |
 
 ---
 
@@ -71,7 +96,7 @@ cloud-security-diagnosis/
 
 **データフロー:**
 ```
-hearing_template_v2.xlsx
+template.xlsx（顧客記入済み）
     → hearing_reader.py（読み込み）
     → hearing_validator.py（バリデーション）
     → diagnosis_runner.py / app.py（診断処理へ）
@@ -90,7 +115,7 @@ hearing_template_v2.xlsx
 .env（AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY）
     → boto3.Session（ベースセッション）
     → iam.get_user() → MFA デバイス取得
-    → sts.get_session_token(mfa_code)  ← フロントから受け取った6桁コード
+    → sts.get_session_token(mfa_code)  ← フロントから受け取った6桁コード（任意）
     → boto3.Session（MFA 認証済みセッション）
     → sts.assume_role(role_arn)
     → role_session, role_credentials（Prowler・Bedrock へ渡す）
@@ -103,7 +128,7 @@ hearing_template_v2.xlsx
 | ファイル | 役割 | 呼び出し元 | 出力 |
 |---|---|---|---|
 | [`backend/ai/ai_input_builder.py`](backend/ai/ai_input_builder.py) | Prowler の OCSF JSON から FAIL Finding だけ抽出し、AI へ渡す最小データを組み立てる | `diagnosis_runner.py`、`main.py` | `[{"finding": {...}, "hearing": {...}}]` |
-| [`backend/ai/bedrock_evaluator.py`](backend/ai/bedrock_evaluator.py) | Amazon Bedrock（Claude Haiku）を呼び出し、MFA 設定の評価結果と利用料金を返す | `diagnosis_runner.py`、`main.py` | `{"decision": ..., "risk": ..., "reason": ..., "cost_usd": ...}` |
+| [`backend/ai/bedrock_evaluator.py`](backend/ai/bedrock_evaluator.py) | Amazon Bedrock（Converse API）を呼び出し、MFA 設定の評価結果と利用料金を返す | `diagnosis_runner.py`、`main.py` | `{"decision": ..., "risk": ..., "reason": ..., "cost_usd": ...}` |
 
 **AI 評価フロー:**
 ```
@@ -111,7 +136,8 @@ output/{timestamp}/*.ocsf.json（Prowler 結果）
     → ai_input_builder.py（FAIL のみ抽出・整形）
     → bedrock_evaluator.py（Bedrock Converse API 呼び出し）
     → {"decision", "risk", "reason", "security_risk", "missing_information", "cost_usd"}
-    → output/{timestamp}/mfa_ai_evaluation.json（保存）
+    → _merge_ai_results()（Finding リストへマージ）
+    → output/{timestamp}/diagnosis_result.json（保存）
 ```
 
 **AI へ渡す情報（プライバシー制御）:**
@@ -124,12 +150,14 @@ output/{timestamp}/*.ocsf.json（Prowler 結果）
 
 | ファイル | 役割 | 対応 API | 対応 JS |
 |---|---|---|---|
-| [`frontend/views/pre_diagnosis.html`](frontend/views/pre_diagnosis.html) | 診断開始画面。ファイルアップロード・MFA入力・診断実行・進捗表示 | `POST /api/hearing/upload`、`POST /api/diagnosis/start`、`GET /api/diagnosis/{id}/progress` | `pre_diagnosis.js` |
-| [`frontend/views/result.html`](frontend/views/result.html) | 診断結果画面。サマリー・Finding 一覧・AI 評価結果表示 | `GET /api/result/{timestamp}` | `result.js` |
+| [`frontend/views/pre_diagnosis.html`](frontend/views/pre_diagnosis.html) | 診断開始画面。ファイルアップロード・MFA入力・AIモデル選択・診断実行・進捗表示 | `POST /api/hearing/upload`、`POST /api/diagnosis/start`、`GET /api/diagnosis/{id}/progress`、`GET /api/template/download` | `pre_diagnosis.js` |
+| [`frontend/views/result.html`](frontend/views/result.html) | 診断結果画面。サマリー・Finding 一覧・AI 評価結果・診断員レビュー入力 | `GET /api/result/{timestamp}`、`POST/GET /api/result/{timestamp}/review/{idx}` | `result.js` |
+| [`frontend/views/report.html`](frontend/views/report.html) | 顧客向けレポート画面。レビュー済み Finding のみ表示・PDF印刷対応 | `GET /api/report/{timestamp}` | `report.js` |
 | [`frontend/views/history.html`](frontend/views/history.html) | 過去の診断履歴一覧 | `GET /api/history` | `history.js` |
 | [`frontend/static/css/style.css`](frontend/static/css/style.css) | 全画面共通スタイル | - | - |
 | [`frontend/static/js/pre_diagnosis.js`](frontend/static/js/pre_diagnosis.js) | ファイルアップロード・バリデーション表示・SSE 進捗受信 | `app.py` | - |
-| [`frontend/static/js/result.js`](frontend/static/js/result.js) | 診断結果 JSON の取得・レンダリング | `app.py` | - |
+| [`frontend/static/js/result.js`](frontend/static/js/result.js) | 診断結果 JSON の取得・レンダリング・レビューフォーム送信 | `app.py` | - |
+| [`frontend/static/js/report.js`](frontend/static/js/report.js) | レポートデータ取得・レンダリング（表紙・サマリー・Finding・ヒアリング） | `app.py` | - |
 | [`frontend/static/js/history.js`](frontend/static/js/history.js) | 履歴一覧の取得・レンダリング | `app.py` | - |
 
 ---
@@ -141,7 +169,7 @@ output/{timestamp}/*.ocsf.json（Prowler 結果）
 | [`Dockerfile`](Dockerfile) | FastAPI アプリのコンテナイメージ定義 | Docker 環境での起動全体 |
 | [`compose.yaml`](compose.yaml) | Docker Compose 設定。DooD（Docker-outside-of-Docker）構成で Prowler を起動 | Docker 環境での起動全体 |
 | [`requirements.txt`](requirements.txt) | Python 依存パッケージ（FastAPI / boto3 / openpyxl 等） | アプリ全体 |
-| [`.env`](`.env`) | AWS 認証情報・Bedrock 設定（**Git 管理外**） | `aws_connector.py`、`bedrock_evaluator.py`、`diagnosis_runner.py` |
+| [`.env`](.env) | AWS 認証情報・Bedrock 設定（**Git 管理外**） | `aws_connector.py`、`bedrock_evaluator.py`、`diagnosis_runner.py` |
 | [`.gitignore`](.gitignore) | Git 除外設定（`.env`、`output/`、`uploads/` 等） | Git 管理範囲 |
 
 ---
@@ -150,7 +178,7 @@ output/{timestamp}/*.ocsf.json（Prowler 結果）
 
 | ファイル | 役割 |
 |---|---|
-| [`templates/hearing_template_v2.xlsx`](templates/hearing_template_v2.xlsx) | 顧客へ配布するヒアリングシートのテンプレート |
+| [`templates/template.xlsx`](templates/template.xlsx) | 顧客へ配布するヒアリングシートのテンプレート（`GET /api/template/download` でダウンロード提供） |
 | [`templates/customer_diagnosis_role.yaml`](templates/customer_diagnosis_role.yaml) | 顧客 AWS アカウントに作成する診断用 IAM Role の CloudFormation テンプレート |
 | [`testdata/mfa_fail_dummy.ocsf.json`](testdata/mfa_fail_dummy.ocsf.json) | AI 評価テスト用のダミー Prowler 出力（OCSF 形式） |
 
@@ -168,23 +196,29 @@ output/{timestamp}/*.ocsf.json（Prowler 結果）
     ├─→ hearing_reader.py（Excel 読み込み）
     └─→ hearing_validator.py（バリデーション）
     │
-    │ 2. 診断開始（MFAコード + モデルID）
+    │ 2. 診断開始（MFAコード + AIモデルID）
     ▼
 [app.py] POST /api/diagnosis/start
     │
     └─→ diagnosis_runner.run_diagnosis()（別スレッド）
             │
             ├─ aws_connector.assume_role()
-            │       └─ .env の認証情報 + フロントの MFA コード
+            │       └─ .env の認証情報 + フロントの MFA コード（任意）
             │
             ├─ docker run prowlercloud/prowler（subprocess）
             │       └─ output/{timestamp}/*.ocsf.json 生成
             │
+            ├─ _parse_findings()
+            │       └─ OCSF JSON → 共通 Finding モデルに変換
+            │
             ├─ ai_input_builder.build_mfa_ai_inputs()
-            │       └─ FAIL Finding のみ抽出
+            │       └─ FAIL Finding のみ抽出・整形
             │
             ├─ bedrock_evaluator.evaluate_mfa()
             │       └─ Bedrock Converse API → 評価 JSON
+            │
+            ├─ _merge_ai_results()
+            │       └─ Finding リストに AI 評価結果をマージ
             │
             └─ output/{timestamp}/diagnosis_result.json 保存
     │
@@ -200,6 +234,18 @@ output/{timestamp}/*.ocsf.json（Prowler 結果）
     │
     └─→ diagnosis_runner.load_result()
             └─ output/{timestamp}/diagnosis_result.json 読み込み
+    │
+    │ 5. 診断員レビュー
+    ▼
+[app.py] POST /api/result/{timestamp}/review/{finding_idx}
+    │
+    └─→ diagnosis_result.json の findings[idx].review フィールドを更新
+    │
+    │ 6. 顧客向けレポート生成
+    ▼
+[app.py] GET /api/report/{timestamp}
+    │
+    └─→ diagnosis_result.json から review 済み・approved・include_in_report=true の Finding のみ返す
 ```
 
 ---
@@ -213,7 +259,62 @@ output/{timestamp}/
 ├── prowler-output-{account_id}-{timestamp}.html       ← Prowler 診断結果（HTML レポート）
 ├── prowler.log                                         ← Prowler 実行ログ
 ├── mfa_ai_evaluation.json                              ← AI 評価結果（FAIL のみ）
-└── diagnosis_result.json                               ← サマリー + Finding 統合結果（履歴用）
+└── diagnosis_result.json                               ← サマリー + Finding 統合結果（履歴・レポート用）
+```
+
+---
+
+## Finding データモデル（diagnosis_result.json）
+
+```json
+{
+  "summary": {
+    "system_name": "...",
+    "cloud": "AWS",
+    "account_id": "...",
+    "role_arn": "...",
+    "region": "...",
+    "diagnosis_datetime": "2026/10/01 12:00",
+    "timestamp": "20261001_120000",
+    "total": 3,
+    "pass_count": 2,
+    "fail_count": 1,
+    "ai_count": 1,
+    "max_risk": "HIGH",
+    "cost": { "usd": 0.0001, "jpy": 0.0155, "usd_str": "$0.0001", "jpy_str": "¥0.0155" },
+    "hearing": { "console_access": "...", "usage": "...", ... }
+  },
+  "findings": [
+    {
+      "check_id": "iam_user_mfa_enabled_console_access",
+      "check_title": "IAM User MFA",
+      "category": "MFA",
+      "target_type": "IAM_USER",
+      "target": "user_name",
+      "cspm_status": "FAIL",
+      "severity": "High",
+      "message": "...",
+      "ai_result": {
+        "decision": "INCORRECT",
+        "risk": "HIGH",
+        "reason": "...",
+        "security_risk": "...",
+        "missing_information": [],
+        "cost_usd": 0.0001
+      },
+      "review": {
+        "status": "approved",
+        "result": "INCORRECT",
+        "severity": "HIGH",
+        "reason": "...",
+        "security_risk": "...",
+        "recommendation": "...",
+        "reviewer_note": "...",
+        "include_in_report": true
+      }
+    }
+  ]
+}
 ```
 
 ---
@@ -227,4 +328,4 @@ output/{timestamp}/
 | `BEDROCK_INFERENCE_PROFILE_ID` | Bedrock 推論プロファイル ARN | `diagnosis_runner.py`、`main.py` |
 | `BEDROCK_REGION` | Bedrock リージョン（デフォルト: `ap-northeast-1`） | `diagnosis_runner.py`、`main.py` |
 | `USD_TO_JPY` | AI 料金の円換算レート（デフォルト: `155`） | `diagnosis_runner.py`、`main.py` |
-| `HOST_OUTPUT_DIR` | Docker DooD 構成時のホスト側 output パス | `diagnosis_runner.py`、`compose.yaml` |
+| `HOST_OUTPUT_DIR` | Docker DooD 構成時のホスト側 output 絶対パス | `diagnosis_runner.py`、`compose.yaml` |

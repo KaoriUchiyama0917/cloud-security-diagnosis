@@ -171,7 +171,7 @@ async def api_hearing_upload(file: UploadFile = File(...)):
     mfa_hearing_raw = hearing.get("権限系", {}).get("MFA", {})
 
     hearing_display = {
-        "system_name": basic.get("診断対象システムの名称は？"),
+        "system_name": basic.get("診断対象の会社名は？"),
         "cloud": basic.get("利用しているクラウドサービスは？"),
         "account_id": basic.get("診断対象のAWSアカウントIDは？"),
         "role_arn": basic.get("診断に使用するRole ARNは？"),

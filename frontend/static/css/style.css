@@ -773,6 +773,211 @@ tbody tr.selected {
 }
 
 /* ============================================================
+   診断結果画面：Account単位 Finding一覧
+   ============================================================ */
+
+/*
+ * AWS Account情報の表示部分
+ */
+.account-result-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.account-result-id {
+  font-size: 18px;
+  font-weight: 700;
+  font-family: monospace;
+  color: var(--color-text);
+}
+
+.account-result-role {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  font-family: monospace;
+}
+
+
+/*
+ * Finding表専用スクロール領域
+ *
+ * 横方向：
+ * 列数が増えても潰さず横スクロール
+ *
+ * 縦方向：
+ * Finding件数が多い場合、
+ * カード全体ではなく表の中だけスクロール
+ */
+.findings-table-wrap {
+  width: 100%;
+  max-height: 620px;
+  overflow: auto;
+}
+
+
+/*
+ * Finding一覧は一定幅を確保
+ * 画面幅より広い場合は横スクロール
+ */
+.findings-table {
+  min-width: 1350px;
+}
+
+
+/*
+ * スクロールしても見出しを固定
+ */
+.findings-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--color-bg);
+}
+
+
+/*
+ * 基本的にセルは1行表示
+ * 列幅を維持して表全体を見やすくする
+ */
+.findings-table th,
+.findings-table td {
+  white-space: nowrap;
+}
+
+
+/*
+ * 診断内容列は少し広め
+ */
+.findings-table th:nth-child(2),
+.findings-table td:nth-child(2) {
+  min-width: 260px;
+}
+
+
+/*
+ * 対象列も長い名称に対応
+ */
+.findings-table th:nth-child(4),
+.findings-table td:nth-child(4) {
+  min-width: 220px;
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ============================================================
+   診断結果：診断項目ごとの折りたたみ表示
+   ============================================================ */
+
+.finding-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+
+/* 診断項目1つ分 */
+.finding-group {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  overflow: hidden;
+}
+
+
+/* 管理者権限 / MFA / Trust Policy などの見出し */
+.finding-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 16px;
+  padding: 14px 16px;
+
+  background: var(--color-bg);
+
+  cursor: pointer;
+  user-select: none;
+
+  font-weight: 700;
+}
+
+
+/* hover */
+.finding-group-header:hover {
+  background: var(--color-primary-light);
+}
+
+
+/* カテゴリ名 */
+.finding-group-title {
+  font-size: 14px;
+  color: var(--color-text);
+}
+
+
+/* PASS / FAIL 件数 */
+.finding-group-counts {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+
+/*
+ * details標準のマーカーは利用する
+ * 左側に ▶ / ▼ が自動表示される
+ */
+.finding-group summary {
+  list-style-position: inside;
+}
+
+
+/*
+ * 開いたテーブルとヘッダーを区切る
+ */
+.finding-group[open] .findings-table-wrap {
+  border-top: 1px solid var(--color-border);
+}
+
+
+/*
+ * グループ内のFindingが多い場合は
+ * 各カテゴリ内でスクロール
+ */
+.finding-group .findings-table-wrap {
+  max-height: 480px;
+  overflow: auto;
+  border-left: none;
+  border-right: none;
+  border-bottom: none;
+  border-radius: 0;
+}
+/* ============================================================
+   Finding一覧：FAIL行の強調
+   ============================================================ */
+
+/* FAILの行を薄い赤で表示 */
+.findings-table tbody tr.finding-row-fail {
+  background: #fff1f1;
+}
+
+/* FAIL行にマウスを乗せたとき */
+.findings-table tbody tr.finding-row-fail:hover {
+  background: #ffe2e2;
+}
+
+/* FAIL行の左端に赤線を表示 */
+.findings-table tbody tr.finding-row-fail td:first-child {
+  border-left: 4px solid #dc2626;
+}
+/* ============================================================
    Finding 詳細パネル
    ============================================================ */
 

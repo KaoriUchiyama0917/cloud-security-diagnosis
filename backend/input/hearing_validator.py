@@ -10,7 +10,7 @@ def validate_hearing_sheet(hearing):
 
     basic = hearing.get("基本情報", {})
 
-    system_name = basic.get("診断対象システムの名称は？")
+    system_name = basic.get("診断対象の会社名は？")
     cloud = basic.get("利用しているクラウドサービスは？")
     account_id = basic.get("診断対象のAWSアカウントIDは？")
     role_arn = basic.get("診断に使用するRole ARNは？")
@@ -21,7 +21,7 @@ def validate_hearing_sheet(hearing):
     # ========================================================
 
     if not system_name:
-        errors.append("診断対象システムの名称を入力してください。")
+        errors.append("診断対象の会社名の名称を入力してください。")
 
     if not cloud:
         errors.append("利用しているクラウドサービスを入力してください。")

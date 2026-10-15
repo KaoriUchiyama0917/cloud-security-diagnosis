@@ -11,6 +11,7 @@ from backend.input.hearing_validator import validate_hearing_sheet
 from backend.aws.aws_connector import assume_role
 from backend.ai.ai_input_builder import build_mfa_ai_inputs
 from backend.ai.bedrock_evaluator import evaluate_mfa
+from backend.diagnosis.checks import get_all_checks
 
 load_dotenv()
 # ============================================================
@@ -151,6 +152,20 @@ def main():
     # role_credentialsにはProwlerへ渡す一時認証情報が入る
     session, role_credentials = assume_role(role_arn)
 
+    # test
+    # role_arn = hearing["基本情報"]["診断に使用するRole ARNは？"]
+
+    # print("\n=== AWS Role切り替え ===")
+
+    # # MFAコードをコンソールから入力
+    # mfa_code = input("MFAコードを入力してください: ").strip()
+
+    # # MFAコードを渡してAssumeRole
+    # session, role_credentials = assume_role(
+    #     role_arn,
+    #     mfa_code
+    # )
+
     print("Role切り替えOK")
 
 
@@ -188,6 +203,9 @@ def main():
     print("\n=== Prowler診断 ===")
     print("診断を開始しました...")
 
+    # checks.py に登録されている診断項目をすべて取得
+    all_checks = get_all_checks()
+
     # Prowlerの詳細ログ保存先
     log_path = output_path / "prowler.log"
 
@@ -216,14 +234,9 @@ def main():
                 # AWSを診断
                 "aws",
 
-                # 今回はMFA関連のみ診断
+                # checks.py に登録されている診断項目をすべて実行
                 "--check",
-
-                # RootユーザーのMFA
-                "iam_root_mfa_enabled",
-
-                # コンソールアクセス可能なIAMユーザーのMFA
-                "iam_user_mfa_enabled_console_access"
+                *all_checks
             ],
 
             # AWS一時認証情報をDockerへ渡す

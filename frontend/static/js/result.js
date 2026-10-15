@@ -26,9 +26,6 @@ const statPass          = document.getElementById("statPass");
 const statFail          = document.getElementById("statFail");
 const statAi            = document.getElementById("statAi");
 
-// Finding テーブル
-const findingTableBody  = document.getElementById("findingTableBody");
-
 // 詳細パネル
 const detailPanel       = document.getElementById("detailPanel");
 const detailCloseBtn    = document.getElementById("detailCloseBtn");
@@ -55,6 +52,89 @@ const reviewNote            = document.getElementById("reviewNote");
 const reviewIncludeInReport = document.getElementById("reviewIncludeInReport");
 const reviewSaveBtn         = document.getElementById("reviewSaveBtn");
 const reviewSaveMsg         = document.getElementById("reviewSaveMsg");
+
+const findingAccountId      = document.getElementById("findingAccountId");
+const findingRoleName       = document.getElementById("findingRoleName");
+
+const findingGroups         = document.getElementById("findingGroups");
+
+// ============================================================
+// Finding 一覧：表示列定義
+// ============================================================
+
+const FINDING_COLUMNS = [
+  {
+    key: "category",
+    label: "診断項目",
+    render: (f) => f.category || "-"
+  },
+  {
+    key: "check_title",
+    label: "診断内容",
+    render: (f) => f.check_title || f.check_id || "-"
+  },
+  {
+    key: "target_type",
+    label: "対象種別",
+    render: (f) => f.target_type || "-"
+  },
+  {
+    key: "target",
+    label: "対象",
+    render: (f) => f.target || "-"
+  },
+  {
+  key: "cspm_status",
+  label: "CSPM判定",
+  render: (f) => {
+
+    // Permission Boundaryだけ表示名を変更
+    if (f.category === "Permission Boundary") {
+      if (f.cspm_status === "PASS") {
+        return makeBadge("設定あり", "pass");
+      }
+      if (f.cspm_status === "FAIL") {
+        return makeBadge("設定なし", "fail");
+      }
+    }
+    // その他の診断項目は通常のPASS / FAIL
+    return makeCspmBadge(f.cspm_status);
+  }
+},
+  {
+    key: "severity",
+    label: "Severity",
+    render: (f) => f.severity || "-"
+  },
+  {
+    key: "ai_decision",
+    label: "AI判定",
+    render: (f) => {
+      if (f.cspm_status === "PASS") {
+        return makeBadge("-", "none");
+      }
+
+      if (f.ai_result) {
+        return makeAiBadge(f.ai_result.decision);
+      }
+
+      return makeBadge("未評価", "none");
+    }
+  },
+  {
+    key: "risk",
+    label: "リスク",
+    render: (f) => {
+      if (f.cspm_status === "PASS") {
+        return makeRiskBadge("NONE");
+      }
+
+      return makeRiskBadge(
+        f.ai_result?.risk || "NONE"
+      );
+    }
+  }
+];
 
 // ============================================================
 // 初期化
@@ -89,8 +169,25 @@ async function init() {
 
 function renderAll(summary, findings) {
   renderSummary(summary);
-  renderFindingTable(findings);
+  renderAccountInfo(summary);
+  renderFindingGroups(findings);
   updateReportButton(findings);
+}
+
+// ============================================================
+// Account情報描画
+// ============================================================
+
+function renderAccountInfo(summary) {
+  findingAccountId.textContent =
+    summary.account_id || "-";
+
+  const roleArn = summary.role_arn || "";
+
+  findingRoleName.textContent =
+    roleArn
+      ? roleArn.split("/").pop()
+      : "-";
 }
 
 function updateReportButton(findings) {
@@ -158,65 +255,178 @@ function renderSummary(s) {
 // ============================================================
 // Finding テーブル描画
 // ============================================================
+function renderFindingGroups(findings) {
+  findingGroups.innerHTML = "";
 
-function renderFindingTable(findings) {
-  findingTableBody.innerHTML = "";
-
-  if (findings.length === 0) {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `<td colspan="5" class="text-center text-muted" style="padding:32px;">
-      診断結果がありません。
-    </td>`;
-    findingTableBody.appendChild(tr);
+  if (!findings || findings.length === 0) {
+    findingGroups.innerHTML = `
+      <div class="text-center text-muted" style="padding:32px;">
+        診断結果がありません。
+      </div>
+    `;
     return;
   }
 
-  findings.forEach((f, idx) => {
-    const tr = document.createElement("tr");
-    tr.dataset.idx = idx;
-    tr.addEventListener("click", () => openDetail(idx, tr));
+  // ==========================================================
+  // category ごとに Finding をまとめる
+  // ==========================================================
 
-    // 診断項目
-    const tdTitle = document.createElement("td");
-    tdTitle.textContent = f.check_title || f.check_id;
+  const grouped = {};
 
-    // 対象
-    const tdTarget = document.createElement("td");
-    tdTarget.style.fontFamily = "monospace";
-    tdTarget.textContent = f.target || "-";
+  findings.forEach((finding, idx) => {
+    const category = finding.category || "その他";
 
-    // CSPM 判定
-    const tdCspm = document.createElement("td");
-    tdCspm.appendChild(makeCspmBadge(f.cspm_status));
-
-    // AI 判定
-    const tdAi = document.createElement("td");
-    if (f.cspm_status === "PASS") {
-      tdAi.appendChild(makeBadge("-", "none"));
-    } else if (f.ai_result) {
-      tdAi.appendChild(makeAiBadge(f.ai_result.decision));
-    } else {
-      tdAi.appendChild(makeBadge("評価中", "none"));
+    if (!grouped[category]) {
+      grouped[category] = [];
     }
 
-    // リスク
-    const tdRisk = document.createElement("td");
-    if (f.cspm_status === "PASS") {
-      tdRisk.appendChild(makeRiskBadge("NONE"));
-
-    } else if (f.ai_result && f.ai_result.risk) {
-      tdRisk.appendChild(makeRiskBadge(f.ai_result.risk));
-
-    } else {
-      tdRisk.appendChild(makeRiskBadge("NONE"));
-    }
-    tr.appendChild(tdTitle);
-    tr.appendChild(tdTarget);
-    tr.appendChild(tdCspm);
-    tr.appendChild(tdAi);
-    tr.appendChild(tdRisk);
-    findingTableBody.appendChild(tr);
+    grouped[category].push({
+      finding,
+      originalIndex: idx
+    });
   });
+
+
+  // ==========================================================
+  // category ごとに折りたたみブロックを作成
+  // ==========================================================
+
+  Object.entries(grouped).forEach(
+    ([category, items], categoryIndex) => {
+
+      const passCount = items.filter(
+        item => item.finding.cspm_status === "PASS"
+      ).length;
+
+      const failCount = items.filter(
+        item => item.finding.cspm_status === "FAIL"
+      ).length;
+
+
+      // details を使うことで開閉処理を自前実装しなくてよい
+      const details = document.createElement("details");
+
+      details.className = "finding-group";
+
+      // 最初のカテゴリだけ最初から開く
+      if (categoryIndex === 0) {
+        details.open = true;
+      }
+
+
+      // ======================================================
+      // 見出し
+      // ======================================================
+
+      const summary = document.createElement("summary");
+      summary.className = "finding-group-header";
+
+      const title = document.createElement("span");
+      title.className = "finding-group-title";
+      title.textContent = category;
+
+      const counts = document.createElement("span");
+      counts.className = "finding-group-counts";
+
+      counts.appendChild(
+        makeBadge(`PASS ${passCount}`, "pass")
+      );
+
+      counts.appendChild(
+        makeBadge(`FAIL ${failCount}`, failCount > 0 ? "fail" : "none")
+      );
+
+      summary.appendChild(title);
+      summary.appendChild(counts);
+
+      details.appendChild(summary);
+
+
+      // ======================================================
+      // テーブル
+      // ======================================================
+
+      const tableWrap = document.createElement("div");
+      tableWrap.className = "table-wrap findings-table-wrap";
+
+      const table = document.createElement("table");
+      table.className = "findings-table";
+
+
+      // ヘッダー
+      const thead = document.createElement("thead");
+      const headRow = document.createElement("tr");
+
+      FINDING_COLUMNS.forEach(column => {
+        // category は見出し側に出ているため表から除外
+        if (column.key === "category") {
+          return;
+        }
+
+        const th = document.createElement("th");
+        th.textContent = column.label;
+
+        headRow.appendChild(th);
+      });
+
+      thead.appendChild(headRow);
+      table.appendChild(thead);
+
+
+      // ======================================================
+      // Finding
+      // ======================================================
+
+      const tbody = document.createElement("tbody");
+
+      items.forEach(({ finding, originalIndex }) => {
+
+        const tr = document.createElement("tr");
+
+        tr.dataset.idx = originalIndex;
+
+        // FAILのFindingは行全体を強調表示
+        if (finding.cspm_status === "FAIL") {
+          tr.classList.add("finding-row-fail");
+        }
+
+        tr.addEventListener(
+          "click",
+          () => openDetail(originalIndex, tr)
+        );
+
+
+        FINDING_COLUMNS.forEach(column => {
+
+          // categoryはグループ名で表示済み
+          if (column.key === "category") {
+            return;
+          }
+
+          const td = document.createElement("td");
+          const value = column.render(finding);
+
+          if (value instanceof Node) {
+            td.appendChild(value);
+          } else {
+            td.textContent = value ?? "-";
+          }
+
+          tr.appendChild(td);
+        });
+
+
+        tbody.appendChild(tr);
+      });
+
+
+      table.appendChild(tbody);
+      tableWrap.appendChild(table);
+      details.appendChild(tableWrap);
+
+      findingGroups.appendChild(details);
+    }
+  );
 }
 
 // ============================================================

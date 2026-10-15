@@ -22,8 +22,14 @@ from dotenv import load_dotenv
 from backend.input.hearing_reader import load_hearing_sheet
 from backend.input.hearing_validator import validate_hearing_sheet
 from backend.aws.aws_connector import assume_role
-from backend.ai.ai_input_builder import build_mfa_ai_inputs
-from backend.ai.bedrock_evaluator import evaluate_mfa
+from backend.aws.iam_collector import collect_permission_boundaries
+from backend.ai.ai_input_builder import build_ai_inputs
+from backend.ai.bedrock_evaluator import evaluate_finding
+from backend.ai.rules.iam import build_iam_system_prompt
+from backend.diagnosis.checks import (
+    get_all_checks,
+    get_check_definition,
+)
 
 load_dotenv()
 
@@ -95,19 +101,10 @@ def _parse_findings(output_path: Path) -> list[dict]:
     with open(json_files[0], "r", encoding="utf-8") as f:
         raw_findings = json.load(f)
 
-    CHECK_TITLE_MAP = {
-        "iam_root_mfa_enabled": "Root MFA",
-        "iam_user_mfa_enabled_console_access": "IAM User MFA",
-    }
-
-    TARGET_TYPE_MAP = {
-        "iam_root_mfa_enabled": "ROOT",
-        "iam_user_mfa_enabled_console_access": "IAM_USER",
-    }
-
     findings = []
     for raw in raw_findings:
         check_id = raw.get("metadata", {}).get("event_code", "")
+        definition = get_check_definition(check_id)
         status = raw.get("status_code", "")
         severity = raw.get("severity", "")
         message = raw.get("message", "")
@@ -129,9 +126,9 @@ def _parse_findings(output_path: Path) -> list[dict]:
 
         findings.append({
             "check_id": check_id,
-            "check_title": CHECK_TITLE_MAP.get(check_id, check_id),
-            "category": "MFA",
-            "target_type": TARGET_TYPE_MAP.get(check_id, "UNKNOWN"),
+            "check_title": definition["title"],
+            "category": definition["category"],
+            "target_type": definition["target_type"],
             "target": target,
             "cspm_status": status,
             "severity": severity,
@@ -142,16 +139,88 @@ def _parse_findings(output_path: Path) -> list[dict]:
     return findings
 
 
-def _merge_ai_results(findings: list[dict], ai_results: list[dict]) -> list[dict]:
-    """
-    Finding リストに AI 評価結果をマージする。
-    ai_results は {"target": str, "evaluation": dict} のリスト。
-    """
-    ai_map = {r["target"]: r["evaluation"] for r in ai_results}
-    for f in findings:
-        if f["cspm_status"] == "FAIL":
-            f["ai_result"] = ai_map.get(f["target"])
+def _build_permission_boundary_findings(permission_boundaries):
+    findings = []
+
+    for user in permission_boundaries.get("users", []):
+        has_boundary = user.get("has_boundary", False)
+        can_manage_iam = user.get("can_manage_iam", False)
+        is_fail = can_manage_iam and not has_boundary
+
+        findings.append({
+            "check_id": "permission_boundary_user",
+            "check_title": "IAM User Permission Boundary",
+            "category": "Permission Boundary",
+            "target_type": "IAM_USER",
+            "target": user.get("name"),
+            "cspm_status": "FAIL" if is_fail else "PASS",
+            "severity": "-",
+            "message": (
+                "IAM管理権限がありますが、Permission Boundaryが設定されていません。"
+                if is_fail
+                else "IAM管理権限を持たないため、Permission Boundary未設定でも問題ありません。"
+            ),
+            "ai_result": None,
+            "raw_status": {
+                "has_boundary": has_boundary,
+                "boundary_policy_arn": user.get("boundary_policy_arn"),
+                "can_manage_iam": can_manage_iam,
+            },
+        })
+
+    for role in permission_boundaries.get("roles", []):
+        has_boundary = role.get("has_boundary", False)
+        can_manage_iam = role.get("can_manage_iam", False)
+        is_fail = can_manage_iam and not has_boundary
+
+        findings.append({
+            "check_id": "permission_boundary_role",
+            "check_title": "IAM Role Permission Boundary",
+            "category": "Permission Boundary",
+            "target_type": "IAM_ROLE",
+            "target": role.get("name"),
+            "cspm_status": "FAIL" if is_fail else "PASS",
+            "severity": "-",
+            "message": (
+                "IAM管理権限がありますが、Permission Boundaryが設定されていません。"
+                if is_fail
+                else "IAM管理権限を持たないため、Permission Boundary未設定でも問題ありません。"
+            ),
+            "ai_result": None,
+            "raw_status": {
+                "has_boundary": has_boundary,
+                "boundary_policy_arn": role.get("boundary_policy_arn"),
+                "can_manage_iam": can_manage_iam,
+            },
+        })
+
     return findings
+
+def _merge_ai_results(findings: list[dict],ai_results: list[dict]) -> list[dict]:
+        """
+        FindingにAI評価結果をマージする。
+
+        check_id + target の組み合わせで紐付ける。
+        """
+
+        ai_map = {
+            (
+                r["check_id"],
+                r["target"],
+            ): r["evaluation"]
+            for r in ai_results
+        }
+
+        for finding in findings:
+
+            key = (
+                finding.get("check_id"),
+                finding.get("target"),
+            )
+
+            finding["ai_result"] = ai_map.get(key)
+
+        return findings
 
 
 # ============================================================
@@ -176,7 +245,7 @@ def _calc_cost_display(cost_usd: float) -> dict:
 
 def _build_summary(hearing: dict, findings: list[dict], ai_results: list[dict], timestamp: str) -> dict:
     basic = hearing.get("基本情報", {})
-    system_name = basic.get("診断対象システムの名称は？", "")
+    system_name = basic.get("診断対象の会社名は？", "")
     cloud = basic.get("利用しているクラウドサービスは？", "AWS")
     account_id = basic.get("診断対象のAWSアカウントIDは？", "")
     role_arn = basic.get("診断に使用するRole ARNは？", "")
@@ -263,6 +332,7 @@ def run_diagnosis(diagnosis_id: str, hearing_path: str, mfa_code: str | None, mo
         steps = [
             ("AWS認証", "待機中"),
             ("Role切替", "待機中"),
+            ("権限情報収集", "待機中"),
             ("CSPM診断", "待機中"),
             ("AI評価", "待機中"),
         ]
@@ -324,6 +394,26 @@ def run_diagnosis(diagnosis_id: str, hearing_path: str, mfa_code: str | None, mo
         output_path = (OUTPUT_BASE / timestamp).resolve()
         output_path.mkdir(parents=True, exist_ok=True)
 
+
+
+        # --------------------------------------------------------
+        # 4-1. Permission Boundary 情報取得
+        # --------------------------------------------------------
+        _set_step(diagnosis_id,"権限情報収集", "実行中")
+
+        permission_boundaries = collect_permission_boundaries(session)
+
+
+        permission_boundary_path = output_path / "permission_boundaries.json"
+
+        with open(permission_boundary_path, "w", encoding="utf-8") as f:
+            json.dump(
+                permission_boundaries,
+                f,
+                ensure_ascii=False,
+                indent=2
+            )
+
         # Prowler の docker run -v に渡すホスト側パスを決定する。
         # Docker-outside-of-Docker (DooD) 構成では、FastAPI コンテナ内の
         # パスをそのまま -v に渡しても Docker デーモン（ホスト側）が
@@ -337,10 +427,14 @@ def run_diagnosis(diagnosis_id: str, hearing_path: str, mfa_code: str | None, mo
         else:
             prowler_output_path = str(output_path)
 
+        _set_step(diagnosis_id,"権限情報収集","完了")
         # --------------------------------------------------------
         # 5. Prowler 実行
         # --------------------------------------------------------
         _set_step(diagnosis_id, "CSPM診断", "実行中")
+
+        # checks.py に登録されている診断項目を取得
+        all_checks = get_all_checks()
 
         env = os.environ.copy()
         env["AWS_ACCESS_KEY_ID"] = role_credentials["AccessKeyId"]
@@ -362,8 +456,7 @@ def run_diagnosis(diagnosis_id: str, hearing_path: str, mfa_code: str | None, mo
                     "aws",
                     "-z",
                     "--check",
-                    "iam_root_mfa_enabled",
-                    "iam_user_mfa_enabled_console_access",
+                    *all_checks,
                 ],
                 env=env,
                 stdout=log_file,
@@ -395,27 +488,69 @@ def run_diagnosis(diagnosis_id: str, hearing_path: str, mfa_code: str | None, mo
         # --------------------------------------------------------
         findings = _parse_findings(output_path)
 
+        permission_boundary_findings = _build_permission_boundary_findings(
+            permission_boundaries
+        )
+
+        findings.extend(permission_boundary_findings)
+        print(
+            f"[DEBUG] Permission Boundary Finding数: "
+            f"{len(permission_boundary_findings)}"
+        )
+
+        print(
+            f"[DEBUG] 全Finding数: "
+            f"{len(findings)}"
+        )
+
+        print(
+            "[DEBUG] Permission Boundaryカテゴリ:",
+            [
+                f["category"]
+                for f in permission_boundary_findings[:3]
+            ]
+        )
         # --------------------------------------------------------
         # 7. AI 評価
         # --------------------------------------------------------
         _set_step(diagnosis_id, "AI評価", "実行中")
 
-        ai_inputs = build_mfa_ai_inputs(output_path, hearing)
+        # 共通FindingからAI評価が必要なものだけ抽出
+        ai_inputs = build_ai_inputs(
+            findings,
+            hearing,
+        )
+
         ai_results = []
 
-        # model_id が指定されていればそれを使う。未指定なら環境変数のデフォルトを使う。
         effective_model_id = BEDROCK_INFERENCE_PROFILE_ID
-        
+
         if ai_inputs:
+
             for ai_input in ai_inputs:
-                result = evaluate_mfa(
+
+                # Routerで決められたAI判定タイプ
+                evaluation_type = ai_input["evaluation_type"]
+
+                # IAM・権限系の判定ルールから
+                # AIへのSystem Promptを生成
+                system_prompt = build_iam_system_prompt(
+                    evaluation_type
+                )
+
+                # Bedrock共通処理を呼び出す
+                result = evaluate_finding(
                     session,
                     effective_model_id,
                     BEDROCK_REGION,
                     ai_input,
+                    system_prompt,
                 )
+
                 ai_results.append({
+                    "check_id": ai_input["finding"]["check_id"],
                     "target": ai_input["finding"]["target"],
+                    "evaluation_type": evaluation_type,
                     "evaluation": result,
                 })
 
@@ -430,7 +565,7 @@ def run_diagnosis(diagnosis_id: str, hearing_path: str, mfa_code: str | None, mo
         # 9. AI 評価結果を JSON 保存
         # --------------------------------------------------------
         if ai_results:
-            ai_result_path = output_path / "mfa_ai_evaluation.json"
+            ai_result_path = output_path / "ai_evaluation.json"
             with open(ai_result_path, "w", encoding="utf-8") as f:
                 json.dump(ai_results, f, ensure_ascii=False, indent=2)
 

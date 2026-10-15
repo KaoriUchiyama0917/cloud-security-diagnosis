@@ -16,13 +16,13 @@
 // 状態
 // ============================================================
 
-let selectedFile  = null;
-let uploadId      = null;
-let selectedModel = null;  // "haiku" | "sonnet"
-let diagnosisId   = null;
-let sseSource     = null;
-let elapsedTimer  = null;
-let elapsedSeconds = 0;
+let selectedFile      = null;
+let uploadId          = null;
+let selectedModel     = null;  // "haiku" | "sonnet"
+let diagnosisId       = null;
+let sseSource         = null;
+let elapsedTimer      = null;
+let diagnosisStartTime = null;  // Date.now() の値（ボタン押下時刻）
 
 // モデルID → Bedrock モデル識別子のマッピング
 // ※ 実際の Bedrock モデル ID または Inference Profile ID に合わせて変更してください
@@ -287,17 +287,23 @@ startBtn.addEventListener("click", async () => {
   renderProgressSteps([
     { step: "AWS認証",  status: "待機中" },
     { step: "Role切替", status: "待機中" },
+    { step: "権限情報収集",   status: "待機中" },
     { step: "CSPM診断", status: "待機中" },
     { step: "AI評価",   status: "待機中" },
   ]);
 
-  // 経過時間タイマー開始
-  elapsedSeconds = 0;
-  updateElapsedDisplay();
+  // 経過時間タイマー開始（診断開始ボタン押下直後から計測）
+  // 念のため既存タイマーをクリア（startTimeはまだ設定しない）
+  if (elapsedTimer) {
+    clearInterval(elapsedTimer);
+    elapsedTimer = null;
+  }
+  diagnosisStartTime = Date.now();
+  updateElapsedDisplay(0);
   elapsedTimer = setInterval(() => {
-    elapsedSeconds++;
-    updateElapsedDisplay();
-  }, 1000);
+    const elapsed = Math.floor((Date.now() - diagnosisStartTime) / 1000);
+    updateElapsedDisplay(elapsed);
+  }, 500);
 
   try {
     const res = await fetch("/api/diagnosis/start", {
@@ -349,10 +355,10 @@ function startSSE(id) {
       renderProgressSteps(data.steps);
     }
 
-    if (data.elapsed !== undefined) {
-      elapsedSeconds = data.elapsed;
-      updateElapsedDisplay();
-    }
+    // if (data.elapsed !== undefined) {
+    //   elapsedSeconds = data.elapsed;
+    //   updateElapsedDisplay();
+    // }
 
     if (data.status === "done") {
       sseSource.close();
@@ -370,6 +376,11 @@ function startSSE(id) {
   };
 
   sseSource.onerror = () => {
+    // SSE接続エラー時は診断が完了していない場合のみエラー表示
+    // （done/error後のclose時にも onerror が発火するブラウザがあるため状態確認）
+    if (sseSource.readyState === EventSource.CLOSED) {
+      return; // 正常クローズ後の発火は無視
+    }
     sseSource.close();
     stopTimer();
     showProgressError("サーバーとの接続が切断されました。");
@@ -383,6 +394,7 @@ function startSSE(id) {
 const STEP_ICONS = {
   "AWS認証":  "🔑",
   "Role切替": "🔄",
+  "権限情報収集":   "📋",
   "CSPM診断": "🔍",
   "AI評価":   "🤖",
 };
@@ -420,9 +432,9 @@ function renderProgressSteps(steps) {
 // 経過時間表示
 // ============================================================
 
-function updateElapsedDisplay() {
-  const m = Math.floor(elapsedSeconds / 60);
-  const s = elapsedSeconds % 60;
+function updateElapsedDisplay(seconds) {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
   elapsedTime.textContent = `経過時間: ${m}分${String(s).padStart(2, "0")}秒`;
 }
 
@@ -430,6 +442,11 @@ function stopTimer() {
   if (elapsedTimer) {
     clearInterval(elapsedTimer);
     elapsedTimer = null;
+  }
+  // 最終経過時間を表示したまま止める
+  if (diagnosisStartTime !== null) {
+    const elapsed = Math.floor((Date.now() - diagnosisStartTime) / 1000);
+    updateElapsedDisplay(elapsed);
   }
 }
 

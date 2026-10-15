@@ -1,135 +1,113 @@
-import json
-from pathlib import Path
+# backend/ai/ai_input_builder.py
+
+from backend.ai.evaluation_router import (
+    get_ai_rule,
+    requires_ai_evaluation,
+)
 
 
-def _get_target_name(finding):
+# ============================================================
+# AI判定タイプ → ヒアリングシートのカテゴリ
+# ============================================================
+
+HEARING_SECTION_MAP = {
+    "mfa": "MFA",
+    "admin_privilege": "管理者権限",
+    "unused_iam": "未使用IAM",
+    "access_key": "アクセスキー",
+    "trust_policy": "Trust Policy",
+}
+
+
+# ============================================================
+# AIへ渡すヒアリング情報取得
+# ============================================================
+
+def _get_hearing_for_ai(
+    evaluation_type: str,
+    hearing: dict
+) -> dict:
     """
-    Prowler FindingからAIへ渡してよい対象名だけ取得する。
-    ARN全体などはAIへ渡さない。
+    AI判定タイプに対応するヒアリングカテゴリの回答だけ取得する。
+
+    例:
+        mfa
+            -> hearing["権限系"]["MFA"]
+
+        admin_privilege
+            -> hearing["権限系"]["管理者権限"]
+
+    Permission BoundaryはAI評価対象ではないため、
+    このMAPには登録しない。
     """
 
-    resources = finding.get("resources", [])
+    section_name = HEARING_SECTION_MAP.get(
+        evaluation_type
+    )
 
-    if not resources:
-        return "unknown"
+    if not section_name:
+        return {}
 
-    resource = resources[0]
-
-    # nameがあれば名前だけ使う
-    name = resource.get("name")
-
-    if name:
-        return name
-
-    # uidしかない場合はARN等の末尾だけ使う
-    uid = resource.get("uid", "")
-
-    if "/" in uid:
-        return uid.rsplit("/", 1)[-1]
-
-    if ":" in uid:
-        return uid.rsplit(":", 1)[-1]
-
-    return "unknown"
+    return (
+        hearing
+        .get("権限系", {})
+        .get(section_name, {})
+    )
 
 
-def build_mfa_ai_inputs(output_path, hearing):
+# ============================================================
+# AI入力生成
+# ============================================================
+
+def build_ai_inputs(
+    findings: list[dict],
+    hearing: dict
+) -> list[dict]:
     """
-    ProwlerのMFA FindingからFAILだけを取得し、
-    AIへ渡してよい情報だけを抽出する。
+    全FindingからAI評価対象だけ抽出し、
+    共通形式のAI入力を生成する。
 
     AIへ渡すもの:
-    - 対象種別
+    - CSPM Finding
     - 対象名
-    - MFA判定
-    - MFAに関係するヒアリング回答
+    - CSPM判定
+    - 判定対象カテゴリのヒアリング回答
 
     AIへ渡さないもの:
-    - AWSアカウントID
-    - ARN全体
-    - Role情報
-    - Resource Tags
-    - Compliance情報
-    - Access Key等の認証情報
+    - AI評価対象外のFinding
+    - Permission Boundary
+    - 他カテゴリの不要なヒアリング回答
     """
-
-    json_files = list(Path(output_path).glob("*.ocsf.json"))
-
-    if not json_files:
-        return []
-
-    # Prowler結果を読み込む
-    with open(json_files[0], "r", encoding="utf-8") as file:
-        findings = json.load(file)
-
-    # ========================================================
-    # ヒアリングシートからMFA関連だけ取得
-    # ========================================================
-
-    mfa_hearing = hearing.get("権限系", {}).get("MFA", {})
-
-    hearing_for_ai = {
-        "console_access": mfa_hearing.get(
-            "AWS管理画面にログインして操作する利用者はいますか？"
-        ),
-        "usage": mfa_hearing.get(
-            "AWS管理画面を利用する目的は何ですか？"
-        ),
-        "alternative_login": mfa_hearing.get(
-            "SSOなどAWSへログインするための別の仕組みを利用していますか？"
-        ),
-        "mfa_exception_reason": mfa_hearing.get(
-            "MFAを設定していない利用者がいる場合、理由はありますか？"
-        )
-    }
 
     ai_inputs = []
 
-    # ========================================================
-    # FindingからMFA FAILだけ抽出
-    # ========================================================
-
     for finding in findings:
 
-        check_id = finding.get(
-            "metadata",
-            {}
-        ).get(
-            "event_code"
-        )
-
-        status = finding.get("status_code")
-
-        # PASSはAIへ送らない
-        if status != "FAIL":
+        # AI評価対象外はスキップ
+        if not requires_ai_evaluation(finding):
             continue
 
-        # ----------------------------
-        # IAMユーザーのMFA
-        # ----------------------------
-        if check_id == "iam_user_mfa_enabled_console_access":
+        check_id = finding.get("check_id", "")
+        evaluation_type = get_ai_rule(check_id)
 
-            ai_inputs.append({
-                "finding": {
-                    "target_type": "IAM_USER",
-                    "target": _get_target_name(finding),
-                    "mfa_status": "FAIL"
-                },
-                "hearing": hearing_for_ai
-            })
+        ai_inputs.append({
+            "evaluation_type": evaluation_type,
 
-        # ----------------------------
-        # RootユーザーのMFA
-        # ----------------------------
-        elif check_id == "iam_root_mfa_enabled":
+            "finding": {
+                "check_id": check_id,
+                "check_title": finding.get("check_title"),
+                "category": finding.get("category"),
+                "target_type": finding.get("target_type"),
+                "target": finding.get("target"),
+                "cspm_status": finding.get("cspm_status"),
+                "severity": finding.get("severity"),
+                "message": finding.get("message"),
+            },
 
-            ai_inputs.append({
-                "finding": {
-                    "target_type": "ROOT",
-                    "target": "root",
-                    "mfa_status": "FAIL"
-                },
-                "hearing": hearing_for_ai
-            })
+            "hearing": _get_hearing_for_ai(
+                evaluation_type,
+                hearing,
+            ),
+        })
 
     return ai_inputs
